@@ -123,6 +123,7 @@ Campus EventHub will be implemented as a Java desktop app with a GUI featuring r
 - User manual and technical documentation  
 - Test cases and scenarios  
 
+---
 
 ## Class Diagram:
 
