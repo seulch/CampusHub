@@ -34,11 +34,11 @@ Campus EventHub will be implemented as a Java desktop app with a GUI featuring r
 - **Cancel or reschedule events** with automatic attendee notification
 
 ### 3. Attendee
-- Browse events with advanced filtering (date, type, department, availability)  
-- Event registration with confirmation and calendar integration  
-- Manage personal schedule with conflict detection  
-- Registration history and attendance tracking  
-- Wishlist functionality for interesting events  
+- Browse events with advanced filtering (date, type, department, availability)
+- Event registration with confirmation and calendar integration
+- Manage registrations with conflict detection
+- Registration history and attendance tracking
+- Wishlist functionality for interesting events
 - Receive notifications for event updates and reminders
 
 ### 4. Administrative Controls (Admin)
@@ -49,9 +49,9 @@ Campus EventHub will be implemented as a Java desktop app with a GUI featuring r
 - Generate comprehensive reports and analytics
 
 ### 5. Advanced Implementations
-- Smart scheduling: Conflict detection and venue double-booking prevention  
-- Capacity management: Automatic waitlist handling and overflow notifications  
-- Event categorization: Department-wise and interest-based grouping  
+- Smart conflict detection and venue double-booking prevention
+- Capacity management: Automatic waitlist handling and overflow notifications
+- Event categorization: Department-wise and interest-based grouping
 - Attendance tracking: QR code generation for check-ins (simulated)
 
 ---
@@ -59,15 +59,15 @@ Campus EventHub will be implemented as a Java desktop app with a GUI featuring r
 ## System Architecture
 
 ### Classes & Hierarchy
-- `User` (Abstract base class)  
-  - `Organizer`: Event creation and management capabilities  
-  - `Attendee`: Registration and personal schedule management  
-  - `Admin`: System oversight and administrative functions  
-- `Event`: Comprehensive event data and lifecycle management  
-- `Venue`: Physical location details and availability tracking  
-- `Registration`: Attendee-event relationship with status tracking  
-- `EventHub`: Central system coordinator (**Singleton pattern**)  
-- `Notification`: Message system for user communications  
+- `User` (Abstract base class)
+  - `Organizer`: Event creation and management capabilities
+  - `Attendee`: Registration and wishlist management
+  - `Admin`: System oversight and administrative functions
+- `Event`: Comprehensive event data and lifecycle management
+- `Venue`: Physical location details and availability tracking
+- `Registration`: Attendee-event relationship with status tracking
+- `EventHub`: Central system coordinator (**Singleton pattern**)
+- `Notification`: Message system for user communications
 - `Report`: Abstract base for various analytics reports
 
 ---
@@ -85,14 +85,14 @@ Campus EventHub will be implemented as a Java desktop app with a GUI featuring r
 ## User Interface Ideas
 
 ### Organizer Dashboard
-- My Events: Event creation wizard and management panel  
-- Analytics: Event performance metrics and attendee insights  
-- Schedule: Calendar view with venue availability  
+- My Events: Event creation wizard and management panel
+- Analytics: Event performance metrics and attendee insights
+- Calendar view with venue availability
 
 ### Attendee Portal
-- Event Browser: Advanced search and filtering capabilities  
-- My Registrations: Personal schedule and registration history  
-- Recommendations: Suggested events based on interests  
+- Event Browser: Advanced search and filtering capabilities
+- My Registrations: Registration history
+- Recommendations: Suggested events based on interests
 
 ### Admin Console
 - System Overview: Key metrics  
@@ -164,11 +164,9 @@ classDiagram
         -List~Registration~ registrations
         -List~Event~ wishlist
         -Map~String, String~ preferences
-        -Schedule personalSchedule
         +registerForEvent(eventId) Registration
         +cancelRegistration(registrationId) boolean
         +addToWishlist(eventId) void
-        +getPersonalSchedule() Schedule
         +getRecommendations() List~Event~
         +getRole() UserRole.ATTENDEE
     }
@@ -219,7 +217,6 @@ classDiagram
         +isAvailable(dateTime, duration) boolean
         +bookVenue(eventId, dateTime, duration) boolean
         +cancelBooking(eventId) boolean
-        +getAvailableSlots(date) List~TimeSlot~
     }
 
     class Registration {
@@ -263,7 +260,6 @@ classDiagram
 
     class EventManager {
         -Map~String, Event~ events
-        -ScheduleValidator scheduleValidator
         +createEvent(details, organizerId) Event
         +updateEvent(eventId, details) boolean
         +deleteEvent(eventId) boolean
