@@ -20,12 +20,27 @@ import com.campuseventhub.config.ApplicationConfig;
  */
 public class Main {
     public static void main(String[] args) {
-        // TODO: Initialize logging framework (java.util.logging)
-        // TODO: Load application configuration from properties file
-        // TODO: Set system Look & Feel (try Nimbus, fallback to system default)
-        // TODO: Initialize EventHub singleton with data loading
-        // TODO: Register shutdown hook to save data on application exit
-        // TODO: Create and display LoginFrame on EDT
-        // TODO: Implement global exception handler for uncaught exceptions
+        // Set up Swing to run on the Event Dispatch Thread
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            try {
+                // Set system Look & Feel
+                javax.swing.UIManager.setLookAndFeel(
+                    javax.swing.UIManager.getSystemLookAndFeelClassName()
+                );
+                
+                // Initialize EventHub singleton
+                EventHub eventHub = EventHub.getInstance();
+                
+                // Create and display LoginFrame
+                LoginFrame loginFrame = new LoginFrame();
+                loginFrame.setVisible(true);
+                
+                System.out.println("Campus EventHub application started successfully!");
+                
+            } catch (Exception e) {
+                System.err.println("Error starting application: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
 }

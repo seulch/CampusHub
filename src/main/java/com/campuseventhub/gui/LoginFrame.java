@@ -30,45 +30,112 @@ public class LoginFrame extends JFrame {
     private JCheckBox rememberUsernameCheckbox;
     
     public LoginFrame() {
-        // TODO: Initialize frame properties
-        // TODO: Create and layout components
-        // TODO: Set up event handlers
-        // TODO: Apply consistent styling
-        // TODO: Center on screen
-        // TODO: Set as default close operation
+        setTitle("Campus EventHub - Login");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(400, 300);
+        setLocationRelativeTo(null); // Center on screen
+        
+        initializeComponents();
+        layoutComponents();
+        setupEventHandlers();
     }
     
     private void initializeComponents() {
-        // TODO: Create input fields with proper sizing
-        // TODO: Create buttons with consistent styling
-        // TODO: Create status label for error messages
-        // TODO: Set up remember username checkbox
-        // TODO: Apply focus order for tab navigation
+        usernameField = new JTextField(20);
+        passwordField = new JPasswordField(20);
+        loginButton = new JButton("Login");
+        registerButton = new JButton("Register");
+        statusLabel = new JLabel("Welcome to Campus EventHub");
+        rememberUsernameCheckbox = new JCheckBox("Remember Username");
     }
     
     private void layoutComponents() {
-        // TODO: Use appropriate layout manager (GridBagLayout)
-        // TODO: Create professional-looking login form
-        // TODO: Add proper spacing and padding
-        // TODO: Include application logo/title
-        // TODO: Make responsive to window resizing
+        setLayout(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        
+        // Title
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        add(new JLabel("Campus EventHub"), gbc);
+        
+        // Username
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.anchor = java.awt.GridBagConstraints.EAST;
+        add(new JLabel("Username:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        add(usernameField, gbc);
+        
+        // Password
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.anchor = java.awt.GridBagConstraints.EAST;
+        add(new JLabel("Password:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        add(passwordField, gbc);
+        
+        // Remember checkbox
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        add(rememberUsernameCheckbox, gbc);
+        
+        // Buttons
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        add(loginButton, gbc);
+        
+        gbc.gridx = 1;
+        add(registerButton, gbc);
+        
+        // Status label
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 2;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        add(statusLabel, gbc);
     }
     
     private void setupEventHandlers() {
-        // TODO: Handle login button click
-        // TODO: Handle register button click
-        // TODO: Handle Enter key in password field
-        // TODO: Handle remember username functionality
-        // TODO: Add input validation on focus lost
+        loginButton.addActionListener(e -> performLogin());
+        registerButton.addActionListener(e -> statusLabel.setText("Register functionality not implemented yet"));
+        
+        // Handle Enter key in password field
+        passwordField.addActionListener(e -> performLogin());
     }
     
     private void performLogin() {
-        // TODO: Validate input fields
-        // TODO: Show loading indicator
-        // TODO: Call EventHub authentication
-        // TODO: Handle successful login (open appropriate dashboard)
-        // TODO: Handle failed login (show error message)
-        // TODO: Clear password field on failure
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
+        
+        if (username.isEmpty() || password.isEmpty()) {
+            statusLabel.setText("Please enter both username and password");
+            return;
+        }
+        
+        // Simple demo login - in real app, this would call EventHub authentication
+        if (username.equals("admin") && password.equals("admin")) {
+            statusLabel.setText("Login successful! Opening admin dashboard...");
+            // TODO: Open admin dashboard
+        } else if (username.equals("organizer") && password.equals("organizer")) {
+            statusLabel.setText("Login successful! Opening organizer dashboard...");
+            // TODO: Open organizer dashboard
+        } else if (username.equals("attendee") && password.equals("attendee")) {
+            statusLabel.setText("Login successful! Opening attendee dashboard...");
+            // TODO: Open attendee dashboard
+        } else {
+            statusLabel.setText("Invalid username or password");
+            passwordField.setText("");
+        }
     }
     
     private void openDashboard(User user) {
