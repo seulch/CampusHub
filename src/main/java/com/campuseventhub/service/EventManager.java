@@ -6,9 +6,12 @@ package com.campuseventhub.service;
 
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.EventType;
+import com.campuseventhub.model.event.EventSearchCriteria;
+import com.campuseventhub.model.event.Conflict;
 import java.util.Map;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDateTime;
 
 /**
  * Service for managing events and related operations.

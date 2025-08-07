@@ -5,6 +5,7 @@
 package com.campuseventhub.gui.organizer;
 
 import com.campuseventhub.gui.common.BaseFrame;
+import com.campuseventhub.model.user.Organizer;
 import javax.swing.*;
 import java.awt.*;
 

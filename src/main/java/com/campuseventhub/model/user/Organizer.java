@@ -35,7 +35,7 @@ public class Organizer extends User {
         // TODO: Set status to PENDING_APPROVAL for new organizers
     }
     
-    public Event createEvent(String title, String description, /* other params */) {
+    public Event createEvent(String title, String description) {
         // TODO: Check if organizer has reached maximum event limit
         // TODO: Validate event details (date, venue availability, etc.)
         // TODO: Create new Event instance with DRAFT status
@@ -46,7 +46,7 @@ public class Organizer extends User {
         return null;
     }
     
-    public boolean updateEvent(String eventId, /* updated details */) {
+    public boolean updateEvent(String eventId) {
         // TODO: Find event in createdEvents list
         // TODO: Verify organizer owns this event
         // TODO: Check if event is in editable state

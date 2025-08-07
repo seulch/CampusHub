@@ -8,6 +8,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import com.campuseventhub.model.user.User;
 
 /**
  * Login window for user authentication.

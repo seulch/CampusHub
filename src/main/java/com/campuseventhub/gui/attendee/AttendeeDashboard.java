@@ -5,6 +5,7 @@
 package com.campuseventhub.gui.attendee;
 
 import com.campuseventhub.gui.common.BaseFrame;
+import com.campuseventhub.model.user.Attendee;
 import javax.swing.*;
 
 /**
@@ -33,7 +34,8 @@ public class AttendeeDashboard extends BaseFrame {
         // TODO: Initialize notification center
     }
     
-    private void initializeComponents() {
+    @Override
+    protected void initializeComponents() {
         // TODO: Create event browser with advanced search
         // TODO: Create personal schedule view with calendar
         // TODO: Create registration management panel

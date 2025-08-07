@@ -5,6 +5,7 @@
 package com.campuseventhub.gui.admin;
 
 import com.campuseventhub.gui.common.BaseFrame;
+import com.campuseventhub.model.user.Admin;
 import javax.swing.*;
 
 /**

@@ -9,6 +9,39 @@ Campus EventHub is a comprehensive event management system designed for universi
 
 ---
 
+## How to Run
+
+To build and run, follow these steps:
+
+1. **Open a terminal and navigate to the project directory:**
+   ```sh
+   cd [path_to_CampusHub]
+   ```
+
+2. **Build project with Maven:**
+   ```sh
+   mvn clean install
+   ```
+   This will compile the code, download dependencies, and package the application.
+
+3. **Run application:**
+   ```sh
+   mvn exec:java
+   ```
+   This will start the main application (GUI) as defined in the `pom.xml`.
+
+**Requirements:**
+- Java 17 or higher
+- Maven (installed and available in your PATH)
+
+If you encounter issues with Maven, make sure you are using the real Apache Maven. When you run:
+```sh
+which mvn
+```
+It should point to `/opt/homebrew/bin/mvn` or `/usr/local/bin/mvn`.
+
+---
+
 ## Description  
 Campus EventHub will be implemented as a Java desktop app with a GUI featuring role-based authentication and distinct interfaces for each user type. The system will handle events such as event creation, registration management, venue booking, and generating reports.
 

@@ -5,11 +5,14 @@
 package com.campuseventhub.service;
 
 import com.campuseventhub.model.user.User;
+import com.campuseventhub.model.user.UserRole;
 import com.campuseventhub.model.event.Event;
+import com.campuseventhub.model.event.EventType;
 import com.campuseventhub.model.report.Report;
 import com.campuseventhub.model.venue.Venue;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 /**
  * Central coordinator service implementing Singleton pattern.
