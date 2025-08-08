@@ -9,6 +9,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import com.campuseventhub.model.user.User;
+import com.campuseventhub.model.user.Admin;
+import com.campuseventhub.model.user.Organizer;
+import com.campuseventhub.model.user.Attendee;
+import com.campuseventhub.gui.admin.AdminDashboard;
+import com.campuseventhub.gui.organizer.OrganizerDashboard;
+import com.campuseventhub.gui.attendee.AttendeeDashboard;
 
 /**
  * Login window for user authentication.
@@ -81,7 +87,7 @@ public class LoginFrame extends JFrame {
         gbc.anchor = java.awt.GridBagConstraints.WEST;
         add(passwordField, gbc);
         
-        // Remember checkbox
+        // "Remember' checkbox
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.gridwidth = 2;
@@ -122,27 +128,56 @@ public class LoginFrame extends JFrame {
             return;
         }
         
-        // Simple demo login - in real app, this would call EventHub authentication
+        // Simple demo login logic implementation ->> in real app this would call EventHub authentication
         if (username.equals("admin") && password.equals("admin")) {
             statusLabel.setText("Login successful! Opening admin dashboard...");
-            // TODO: Open admin dashboard
+            openAdminDashboard();
         } else if (username.equals("organizer") && password.equals("organizer")) {
             statusLabel.setText("Login successful! Opening organizer dashboard...");
-            // TODO: Open organizer dashboard
+            openOrganizerDashboard();
         } else if (username.equals("attendee") && password.equals("attendee")) {
             statusLabel.setText("Login successful! Opening attendee dashboard...");
-            // TODO: Open attendee dashboard
+            openAttendeeDashboard();
         } else {
             statusLabel.setText("Invalid username or password");
             passwordField.setText("");
         }
     }
     
-    private void openDashboard(User user) {
-        // TODO: Determine user role
-        // TODO: Open appropriate dashboard window
-        // TODO: Close login window
-        // TODO: Center dashboard on screen
+    private void openAdminDashboard() {
+        try {
+            // temporary admin user for testing
+            Admin admin = new Admin("admin", "admin@test.com", "admin", "Admin", "User", "SYSTEM_ADMIN");
+            AdminDashboard dashboard = new AdminDashboard(admin);
+            dashboard.setVisible(true);
+            this.dispose(); // Close login window
+        } catch (Exception e) {
+            statusLabel.setText("Error opening admin dashboard: " + e.getMessage());
+        }
+    }
+    
+    private void openOrganizerDashboard() {
+        try {
+            // temporary organizer user for testing
+            Organizer organizer = new Organizer("organizer", "organizer@test.com", "organizer", "Test", "Organizer", "General");
+            OrganizerDashboard dashboard = new OrganizerDashboard(organizer);
+            dashboard.setVisible(true);
+            this.dispose(); // Close login window
+        } catch (Exception e) {
+            statusLabel.setText("Error opening organizer dashboard: " + e.getMessage());
+        }
+    }
+    
+    private void openAttendeeDashboard() {
+        try {
+            // temporary attendee user for testing
+            Attendee attendee = new Attendee("attendee", "attendee@test.com", "attendee", "Test", "Student");
+            AttendeeDashboard dashboard = new AttendeeDashboard(attendee);
+            dashboard.setVisible(true);
+            this.dispose(); // Close login window
+        } catch (Exception e) {
+            statusLabel.setText("Error opening attendee dashboard: " + e.getMessage());
+        }
     }
     
     // TODO: Add utility methods
