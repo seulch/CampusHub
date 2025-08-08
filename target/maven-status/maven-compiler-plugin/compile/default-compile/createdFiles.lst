@@ -32,6 +32,7 @@ com/campuseventhub/model/venue/Venue.class
 com/campuseventhub/persistence/VenueRepository.class
 com/campuseventhub/model/report/EventReport.class
 com/campuseventhub/util/QRCodeGenerator.class
+com/campuseventhub/service/UserManager$1.class
 com/campuseventhub/util/ValidationUtil.class
 com/campuseventhub/model/user/Admin.class
 com/campuseventhub/strategy/InAppNotification.class
