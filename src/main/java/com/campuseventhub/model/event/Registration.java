@@ -30,42 +30,75 @@ public class Registration implements Serializable {
     private String cancellationReason;
     private LocalDateTime cancellationTime;
     
+    /**
+     * Creates a new registration for an attendee to an event
+     * PARAMS: attendeeId, eventId
+     */
     public Registration(String attendeeId, String eventId) {
-        // TODO: Generate unique registrationId
-        // TODO: Set registration timestamp
-        // TODO: Set initial status (PENDING or CONFIRMED based on capacity)
-        // TODO: Initialize attendance as false
-        // TODO: Set waitlist position if applicable
+        this.registrationId = java.util.UUID.randomUUID().toString();
+        this.attendeeId = attendeeId;
+        this.eventId = eventId;
+        this.registrationTime = LocalDateTime.now();
+        this.status = RegistrationStatus.PENDING;
+        this.attended = false;
+        this.waitlistPosition = 0;
     }
     
+    /**
+     * Confirms the registration status
+     */
     public void confirmRegistration() {
-        // TODO: Update status to CONFIRMED
-        // TODO: Send confirmation notification
-        // TODO: Add to attendee's personal schedule
-        // TODO: Log confirmation event
+        this.status = RegistrationStatus.CONFIRMED;
     }
     
+    /**
+     * Cancels the registration with optional reason
+     * PARAMS: reason
+     */
     public void cancelRegistration(String reason) {
-        // TODO: Update status to CANCELLED
-        // TODO: Set cancellation reason and timestamp
-        // TODO: Remove from personal schedule
-        // TODO: Promote next person from waitlist
-        // TODO: Send cancellation confirmation
+        this.status = RegistrationStatus.CANCELLED;
+        this.cancellationReason = reason;
+        this.cancellationTime = LocalDateTime.now();
     }
     
+    /**
+     * Marks the attendee as present at the event
+     */
     public void markAttendance() {
-        // TODO: Set attended to true
-        // TODO: Record attendance timestamp
-        // TODO: Update event attendance statistics
-        // TODO: Log attendance marking
+        this.attended = true;
+        this.attendanceTime = LocalDateTime.now();
     }
     
+    /**
+     * Checks if registration is confirmed
+     */
     public boolean isConfirmed() {
         return status == RegistrationStatus.CONFIRMED;
     }
     
-    // TODO: Add getters, setters, validation methods
-    // public boolean canBeCancelled()
-    // public long getHoursUntilEvent()
-    // public boolean isWaitlisted()
+    /**
+     * Checks if registration is on waitlist
+     */
+    public boolean isWaitlisted() {
+        return waitlistPosition > 0;
+    }
+    
+    // Getters and setters
+    public String getRegistrationId() { return registrationId; }
+    public String getAttendeeId() { return attendeeId; }
+    public String getEventId() { return eventId; }
+    public LocalDateTime getRegistrationTime() { return registrationTime; }
+    public RegistrationStatus getStatus() { return status; }
+    public boolean isAttended() { return attended; }
+    public LocalDateTime getAttendanceTime() { return attendanceTime; }
+    public int getWaitlistPosition() { return waitlistPosition; }
+    public String getCancellationReason() { return cancellationReason; }
+    public LocalDateTime getCancellationTime() { return cancellationTime; }
+    
+    public void setStatus(RegistrationStatus status) { this.status = status; }
+    public void setAttended(boolean attended) { this.attended = attended; }
+    public void setAttendanceTime(LocalDateTime attendanceTime) { this.attendanceTime = attendanceTime; }
+    public void setWaitlistPosition(int waitlistPosition) { this.waitlistPosition = waitlistPosition; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
+    public void setCancellationTime(LocalDateTime cancellationTime) { this.cancellationTime = cancellationTime; }
 }

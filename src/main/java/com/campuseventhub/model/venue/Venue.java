@@ -7,6 +7,8 @@ package com.campuseventhub.model.venue;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.Serializable;
 
 /**
@@ -36,41 +38,71 @@ public class Venue implements Serializable {
     private boolean isActive;
     
     public Venue(String name, String location, int capacity) {
-        // TODO: Generate unique venueId
-        // TODO: Validate required fields
-        // TODO: Initialize collections
-        // TODO: Set default setup/cleanup times
-        // TODO: Set venue as active
+        this.venueId = java.util.UUID.randomUUID().toString();
+        this.name = name;
+        this.location = location;
+        this.capacity = capacity;
+        this.equipment = new ArrayList<>();
+        this.bookings = new HashMap<>();
+        this.features = new ArrayList<>();
+        this.setupTimeMinutes = 30;
+        this.cleanupTimeMinutes = 30;
+        this.isActive = true;
     }
     
     public boolean isAvailable(LocalDateTime startTime, LocalDateTime endTime) {
-        // TODO: Check if venue is active
-        // TODO: Account for setup and cleanup time
-        // TODO: Check for overlapping bookings
-        // TODO: Consider maintenance windows
-        // TODO: Return availability status
-        return false;
+        if (!isActive) {
+            return false;
+        }
+        
+        // Check for overlapping bookings
+        for (Map.Entry<LocalDateTime, String> booking : bookings.entrySet()) {
+            LocalDateTime bookingTime = booking.getKey();
+            if (startTime.isBefore(bookingTime) && endTime.isAfter(bookingTime)) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     public boolean bookVenue(String eventId, LocalDateTime startTime, LocalDateTime endTime) {
-        // TODO: Verify availability for requested time slot
-        // TODO: Add booking to bookings map
-        // TODO: Include setup and cleanup time in booking
-        // TODO: Log booking action
-        // TODO: Return booking success status
-        return false;
+        if (!isAvailable(startTime, endTime)) {
+            return false;
+        }
+        
+        bookings.put(startTime, eventId);
+        return true;
     }
     
     public boolean cancelBooking(String eventId) {
-        // TODO: Find booking by eventId
-        // TODO: Remove from bookings map
-        // TODO: Log cancellation
-        // TODO: Return cancellation success status
-        return false;
+        return bookings.values().remove(eventId);
     }
     
-    // TODO: Add equipment management methods
-    // public void addEquipment(String equipment)
-    // public boolean hasEquipment(String equipment)
-    // public void updateCapacity(int newCapacity)
+    // Getters and setters
+    public String getVenueId() { return venueId; }
+    public String getName() { return name; }
+    public String getLocation() { return location; }
+    public String getBuilding() { return building; }
+    public String getFloor() { return floor; }
+    public String getRoomNumber() { return roomNumber; }
+    public int getCapacity() { return capacity; }
+    public List<String> getEquipment() { return equipment; }
+    public Map<LocalDateTime, String> getBookings() { return bookings; }
+    public List<String> getFeatures() { return features; }
+    public int getSetupTimeMinutes() { return setupTimeMinutes; }
+    public int getCleanupTimeMinutes() { return cleanupTimeMinutes; }
+    public boolean isActive() { return isActive; }
+    
+    public void setName(String name) { this.name = name; }
+    public void setLocation(String location) { this.location = location; }
+    public void setBuilding(String building) { this.building = building; }
+    public void setFloor(String floor) { this.floor = floor; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+    public void setCapacity(int capacity) { this.capacity = capacity; }
+    public void setEquipment(List<String> equipment) { this.equipment = equipment; }
+    public void setFeatures(List<String> features) { this.features = features; }
+    public void setSetupTimeMinutes(int setupTimeMinutes) { this.setupTimeMinutes = setupTimeMinutes; }
+    public void setCleanupTimeMinutes(int cleanupTimeMinutes) { this.cleanupTimeMinutes = cleanupTimeMinutes; }
+    public void setActive(boolean active) { isActive = active; }
 }

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import com.campuseventhub.model.user.UserStatus;
 
 /**
  * Service for managing user accounts and authentication.
@@ -30,6 +31,9 @@ public class UserManager {
     private Map<String, User> usersByEmail;
     private Map<String, User> usersByUsername;
     
+    /**
+     * Initializes thread-safe user storage maps
+     */
     public UserManager() {
         this.users = new ConcurrentHashMap<>();
         this.usersByEmail = new ConcurrentHashMap<>();
@@ -39,6 +43,10 @@ public class UserManager {
         // TODO: Set up indexing for quick lookups
     }
     
+    /**
+     * Creates a new user account with specified role
+     * PARAMS: username, email, password, firstName, lastName, role
+     */
     public User createUser(String username, String email, String password,
                           String firstName, String lastName, UserRole role) {
         if (username == null || username.trim().isEmpty() ||
@@ -77,26 +85,35 @@ public class UserManager {
         return user;
     }
     
+    /**
+     * Retrieves user by unique user ID
+     * PARAMS: userId
+     */
     public User getUserById(String userId) {
         return users.get(userId);
     }
     
+    /**
+     * Validates user credentials for login
+     * PARAMS: username, password
+     */
     public User validateCredentials(String username, String password) {
         User user = usersByUsername.get(username);
         if (user == null) {
             return null;
         }
         
-        if (password.equals(user.getPassword())) {
-            // TODO: Check account status (active, suspended, etc.)
-            // TODO: Update last login timestamp
-            // TODO: Log authentication attempt
+        if (user.login(username, password)) {
             return user;
         }
         
         return null;
     }
     
+    /**
+     * Updates user information with provided field updates
+     * PARAMS: userId, updates
+     */
     public boolean updateUser(String userId, Map<String, Object> updates) {
         User user = users.get(userId);
         if (user == null) {
@@ -128,25 +145,65 @@ public class UserManager {
                         }
                     }
                     break;
-                // Add more fields as needed
+                case "status":
+                    if (value instanceof UserStatus) {
+                        user.setStatus((UserStatus) value);
+                    }
+                    break;
             }
         }
-        // TODO: Update indexes if username/email changed
-        // TODO: Save changes to persistence
-        // TODO: Log update operation
         return true;
     }
     
+    /**
+     * Retrieves all users in the system
+     */
     public List<User> getAllUsers() {
-        // TODO: Return all users (admin function)
-        // TODO: Apply any filtering based on requester permissions
         return new ArrayList<>(users.values());
     }
     
-    // TODO: Add methods for user management
-    // public List<User> getUsersByRole(UserRole role)
-    // public boolean deleteUser(String userId)
-    // public List<User> getPendingApprovals()
-    // public boolean isUsernameAvailable(String username)
-    // public boolean isEmailAvailable(String email)
+    /**
+     * Retrieves users filtered by specific role
+     * PARAMS: role
+     */
+    public List<User> getUsersByRole(UserRole role) {
+        List<User> usersByRole = new ArrayList<>();
+        for (User user : users.values()) {
+            if (user.getRole() == role) {
+                usersByRole.add(user);
+            }
+        }
+        return usersByRole;
+    }
+    
+    /**
+     * Deletes a user account from the system
+     * PARAMS: userId
+     */
+    public boolean deleteUser(String userId) {
+        User user = users.get(userId);
+        if (user != null) {
+            users.remove(userId);
+            usersByEmail.remove(user.getEmail());
+            usersByUsername.remove(user.getUsername());
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Checks if a username is available for registration
+     * PARAMS: username
+     */
+    public boolean isUsernameAvailable(String username) {
+        return !usersByUsername.containsKey(username);
+    }
+    
+    /**
+     * Checks if an email is available for registration
+     * PARAMS: email
+     */
+    public boolean isEmailAvailable(String email) {
+        return !usersByEmail.containsKey(email);
+    }
 }

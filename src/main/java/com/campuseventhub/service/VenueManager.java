@@ -7,6 +7,7 @@ package com.campuseventhub.service;
 import com.campuseventhub.model.venue.Venue;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -21,35 +22,82 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VenueManager {
     private Map<String, Venue> venues;
 
+    /**
+     * Initializes thread-safe venue storage
+     */
     public VenueManager() {
-        // TODO: Initialize venue map
-        // TODO: Load venues from persistence
-        // TODO: Build search indexes
+        this.venues = new ConcurrentHashMap<>();
     }
 
+    /**
+     * Adds a new venue to the system
+     * PARAMS: venue
+     */
     public boolean addVenue(Venue venue) {
-        // TODO: Validate venue details
-        // TODO: Generate unique venue ID if needed
-        // TODO: Store venue in map and indexes
-        // TODO: Persist venue information
-        return false;
+        if (venue == null || venue.getVenueId() == null) {
+            return false;
+        }
+        
+        venues.put(venue.getVenueId(), venue);
+        return true;
     }
 
+    /**
+     * Updates venue information with provided field updates
+     * PARAMS: venueId, updates
+     */
     public boolean updateVenue(String venueId, Map<String, Object> updates) {
-        // TODO: Find venue by ID
-        // TODO: Validate update parameters
-        // TODO: Apply changes and update indexes
-        // TODO: Save updated venue
-        return false;
+        Venue venue = venues.get(venueId);
+        if (venue == null) {
+            return false;
+        }
+        
+        for (Map.Entry<String, Object> entry : updates.entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+            
+            switch (field) {
+                case "name":
+                    if (value instanceof String) {
+                        venue.setName((String) value);
+                    }
+                    break;
+                case "capacity":
+                    if (value instanceof Integer) {
+                        venue.setCapacity((Integer) value);
+                    }
+                    break;
+                case "location":
+                    if (value instanceof String) {
+                        venue.setLocation((String) value);
+                    }
+                    break;
+            }
+        }
+        
+        return true;
     }
 
+    /**
+     * Retrieves all venues in the system
+     */
     public List<Venue> listVenues() {
-        // TODO: Return sorted list of venues
-        // TODO: Apply filtering or pagination if required
-        return null;
+        return new ArrayList<>(venues.values());
     }
-
-    // TODO: Additional venue management methods
-    // public boolean deleteVenue(String venueId)
-    // public Venue getVenueById(String venueId)
+    
+    /**
+     * Retrieves a specific venue by ID
+     * PARAMS: venueId
+     */
+    public Venue getVenueById(String venueId) {
+        return venues.get(venueId);
+    }
+    
+    /**
+     * Deletes a venue from the system
+     * PARAMS: venueId
+     */
+    public boolean deleteVenue(String venueId) {
+        return venues.remove(venueId) != null;
+    }
 }

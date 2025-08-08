@@ -8,6 +8,8 @@ import com.campuseventhub.model.venue.Venue;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Queue;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.io.Serializable;
 
 /**
@@ -41,71 +43,171 @@ public class Event implements Serializable {
     private LocalDateTime createdAt;
     private LocalDateTime lastModified;
     
+    /**
+     * Creates a new event with basic information
+     * PARAMS: title, description, eventType, startDateTime, endDateTime, organizerId
+     */
     public Event(String title, String description, EventType eventType,
                 LocalDateTime startDateTime, LocalDateTime endDateTime,
                 String organizerId) {
-        // TODO: Generate unique eventId
-        // TODO: Validate required fields
-        // TODO: Set initial status to DRAFT
-        // TODO: Initialize collections
-        // TODO: Set creation timestamp
-        // TODO: Generate QR code for event
+        this.eventId = java.util.UUID.randomUUID().toString();
+        this.title = title;
+        this.description = description;
+        this.eventType = eventType;
+        this.startDateTime = startDateTime;
+        this.endDateTime = endDateTime;
+        this.organizerId = organizerId;
+        this.status = EventStatus.DRAFT;
+        this.registrations = new ArrayList<>();
+        this.waitlist = new LinkedList<>();
+        this.prerequisites = new ArrayList<>();
+        this.createdAt = LocalDateTime.now();
+        this.lastModified = LocalDateTime.now();
     }
     
+    /**
+     * Adds a new registration for an attendee to this event
+     * PARAMS: attendeeId
+     */
     public Registration addRegistration(String attendeeId) {
-        // TODO: Check if registration is open
-        // TODO: Verify attendee is not already registered
-        // TODO: Check capacity and add to waitlist if full
-        // TODO: Create Registration instance
-        // TODO: Add to registrations or waitlist
-        // TODO: Send confirmation/waitlist notification
-        // TODO: Return registration details
-        return null;
+        // Check if registration is open (deadline must be set and not passed)
+        if (registrationDeadline == null || !isRegistrationOpen()) {
+            return null;
+        }
+        
+        // Check if attendee is already registered
+        for (Registration reg : registrations) {
+            if (reg.getAttendeeId().equals(attendeeId)) {
+                return null; // Already registered
+            }
+        }
+        
+        Registration registration = new Registration(attendeeId, this.eventId);
+        
+        if (registrations.size() < maxCapacity) {
+            registration.confirmRegistration();
+            registrations.add(registration);
+        } else {
+            registration.setWaitlistPosition(waitlist.size() + 1);
+            waitlist.offer(registration);
+        }
+        
+        return registration;
     }
     
+    /**
+     * Removes a registration from this event
+     * PARAMS: registrationId
+     */
     public boolean removeRegistration(String registrationId) {
-        // TODO: Find registration in list
-        // TODO: Remove from registrations
-        // TODO: Move next person from waitlist if applicable
-        // TODO: Update capacity count
-        // TODO: Notify affected attendees
+        for (int i = 0; i < registrations.size(); i++) {
+            Registration reg = registrations.get(i);
+            if (reg.getRegistrationId().equals(registrationId)) {
+                registrations.remove(i);
+                promoteFromWaitlist();
+                return true;
+            }
+        }
         return false;
     }
     
+    /**
+     * Updates the event status and modification timestamp
+     * PARAMS: newStatus
+     */
     public void updateStatus(EventStatus newStatus) {
-        // TODO: Validate status transition rules
-        // TODO: Update status and lastModified timestamp
-        // TODO: Trigger status-specific actions
-        // TODO: Notify stakeholders of status change
-        // TODO: Log status change event
+        this.status = newStatus;
+        this.lastModified = LocalDateTime.now();
     }
     
+    /**
+     * Checks if event registration is currently open
+     */
     public boolean isRegistrationOpen() {
-        // TODO: Check if current time is before registration deadline
-        // TODO: Verify event status allows registration
-        // TODO: Consider capacity constraints
-        return false;
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Check if registration deadline is set
+        if (registrationDeadline == null) {
+            return false;
+        }
+        
+        return now.isBefore(registrationDeadline) && 
+               status == EventStatus.PUBLISHED;
     }
     
+    /**
+     * Checks if event has available capacity for new registrations
+     */
     public boolean hasCapacity() {
-        // TODO: Compare current registrations with maxCapacity
-        // TODO: Account for confirmed vs pending registrations
-        return false;
+        return registrations.size() < maxCapacity;
     }
     
+    /**
+     * Calculates the number of available spots for registration
+     */
+    public int getAvailableSpots() {
+        return Math.max(0, maxCapacity - registrations.size());
+    }
+    
+    /**
+     * Generates QR code for event check-in
+     */
     public String generateQRCode() {
-        // TODO: Generate QR code containing event details
-        // TODO: Include eventId, checkIn URL, and timestamp
-        // TODO: Use QRCodeGenerator utility class
-        // TODO: Store generated QR code string
-        // TODO: Return QR code for display/printing
+        if (qrCode == null) {
+            String eventData = String.format("Event:%s|CheckIn:%s|Time:%s", 
+                eventId, eventId, LocalDateTime.now());
+            qrCode = eventData; // Simple implementation for project
+        }
         return qrCode;
     }
     
-    // TODO: Add getters, setters, equals, hashCode, toString methods
-    // TODO: Add validation methods for event data
-    // TODO: Add methods for waitlist management
-    // public void promoteFromWaitlist()
-    // public int getAvailableSpots()
-    // public List<Registration> getConfirmedRegistrations()
+    /**
+     * Promotes the next person from waitlist to confirmed registration
+     */
+    private void promoteFromWaitlist() {
+        if (!waitlist.isEmpty() && hasCapacity()) {
+            Registration promoted = waitlist.poll();
+            promoted.confirmRegistration();
+            registrations.add(promoted);
+            
+            // Update waitlist positions
+            int position = 1;
+            for (Registration reg : waitlist) {
+                reg.setWaitlistPosition(position++);
+            }
+        }
+    }
+    
+    // Getters and setters
+    public String getEventId() { return eventId; }
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public EventType getEventType() { return eventType; }
+    public LocalDateTime getStartDateTime() { return startDateTime; }
+    public LocalDateTime getEndDateTime() { return endDateTime; }
+    public Venue getVenue() { return venue; }
+    public int getMaxCapacity() { return maxCapacity; }
+    public LocalDateTime getRegistrationDeadline() { return registrationDeadline; }
+    public EventStatus getStatus() { return status; }
+    public String getOrganizerId() { return organizerId; }
+    public List<String> getPrerequisites() { return prerequisites; }
+    public String getTargetAudience() { return targetAudience; }
+    public List<Registration> getRegistrations() { return registrations; }
+    public Queue<Registration> getWaitlist() { return waitlist; }
+    public String getQrCode() { return qrCode; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getLastModified() { return lastModified; }
+    
+    public void setTitle(String title) { this.title = title; }
+    public void setDescription(String description) { this.description = description; }
+    public void setEventType(EventType eventType) { this.eventType = eventType; }
+    public void setStartDateTime(LocalDateTime startDateTime) { this.startDateTime = startDateTime; }
+    public void setEndDateTime(LocalDateTime endDateTime) { this.endDateTime = endDateTime; }
+    public void setVenue(Venue venue) { this.venue = venue; }
+    public void setMaxCapacity(int maxCapacity) { this.maxCapacity = maxCapacity; }
+    public void setRegistrationDeadline(LocalDateTime registrationDeadline) { this.registrationDeadline = registrationDeadline; }
+    public void setStatus(EventStatus status) { this.status = status; }
+    public void setTargetAudience(String targetAudience) { this.targetAudience = targetAudience; }
+    public void setPrerequisites(List<String> prerequisites) { this.prerequisites = prerequisites; }
+    public void setLastModified(LocalDateTime lastModified) { this.lastModified = lastModified; }
 }

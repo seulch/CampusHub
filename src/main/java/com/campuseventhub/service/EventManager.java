@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import com.campuseventhub.model.event.EventStatus;
 
 /**
  * Service for managing events and related operations.
@@ -30,60 +32,188 @@ public class EventManager {
     private Map<EventType, List<Event>> eventsByType;
     private ScheduleValidator scheduleValidator;
     
+    /**
+     * Initializes thread-safe event storage and indexes
+     */
     public EventManager() {
-        // TODO: Initialize concurrent maps
-        // TODO: Load events from persistence
-        // TODO: Initialize schedule validator
-        // TODO: Build indexes for efficient searching
+        this.events = new ConcurrentHashMap<>();
+        this.eventsByOrganizer = new ConcurrentHashMap<>();
+        this.eventsByType = new ConcurrentHashMap<>();
+        this.scheduleValidator = new ScheduleValidator();
     }
     
+    /**
+     * Creates a new event with validation and indexing
+     * PARAMS: title, description, type, startTime, endTime, organizerId, venueId
+     */
     public Event createEvent(String title, String description, EventType type,
                            LocalDateTime startTime, LocalDateTime endTime,
                            String organizerId, String venueId) {
-        // TODO: Validate all event parameters
-        // TODO: Check organizer permissions and limits
-        // TODO: Verify venue availability
-        // TODO: Check for schedule conflicts
-        // TODO: Create Event instance
-        // TODO: Add to all indexes
-        // TODO: Save to persistence
-        return null;
+        if (title == null || title.trim().isEmpty() ||
+            description == null || description.trim().isEmpty() ||
+            startTime == null || endTime == null ||
+            organizerId == null || organizerId.trim().isEmpty()) {
+            return null;
+        }
+        
+        if (startTime.isAfter(endTime)) {
+            return null; // Invalid time range
+        }
+        
+        Event event = new Event(title, description, type, startTime, endTime, organizerId);
+        
+        // Add to all indexes
+        events.put(event.getEventId(), event);
+        
+        // Add to organizer index
+        eventsByOrganizer.computeIfAbsent(organizerId, k -> new ArrayList<>()).add(event);
+        
+        // Add to type index
+        eventsByType.computeIfAbsent(type, k -> new ArrayList<>()).add(event);
+        
+        return event;
     }
     
+    /**
+     * Updates event information with provided field updates
+     * PARAMS: eventId, updates
+     */
     public boolean updateEvent(String eventId, Map<String, Object> updates) {
-        // TODO: Find event and validate ownership/permissions
-        // TODO: Check if event is in editable state
-        // TODO: Validate updated information
-        // TODO: Handle venue changes and conflicts
-        // TODO: Notify registered attendees of changes
-        // TODO: Update indexes
-        // TODO: Save changes
-        return false;
+        Event event = events.get(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        for (Map.Entry<String, Object> entry : updates.entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+            
+            switch (field) {
+                case "title":
+                    if (value instanceof String) {
+                        event.setTitle((String) value);
+                    }
+                    break;
+                case "description":
+                    if (value instanceof String) {
+                        event.setDescription((String) value);
+                    }
+                    break;
+                case "maxCapacity":
+                    if (value instanceof Integer) {
+                        event.setMaxCapacity((Integer) value);
+                    }
+                    break;
+                case "status":
+                    if (value instanceof EventStatus) {
+                        event.setStatus((EventStatus) value);
+                    }
+                    break;
+            }
+        }
+        
+        event.setLastModified(LocalDateTime.now());
+        return true;
     }
     
+    /**
+     * Deletes an event from the system
+     * PARAMS: eventId
+     */
     public boolean deleteEvent(String eventId) {
-        // TODO: Validate deletion permissions
-        // TODO: Check event status (can't delete active events)
-        // TODO: Handle registrations and refunds
-        // TODO: Remove from all indexes
-        // TODO: Update persistence layer
-        return false;
+        Event event = events.get(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        // Remove from all indexes
+        events.remove(eventId);
+        
+        // Remove from organizer index
+        List<Event> organizerEvents = eventsByOrganizer.get(event.getOrganizerId());
+        if (organizerEvents != null) {
+            organizerEvents.remove(event);
+        }
+        
+        // Remove from type index
+        List<Event> typeEvents = eventsByType.get(event.getEventType());
+        if (typeEvents != null) {
+            typeEvents.remove(event);
+        }
+        
+        return true;
     }
     
+    /**
+     * Searches for events based on specified criteria
+     * PARAMS: criteria
+     */
     public List<Event> searchEvents(EventSearchCriteria criteria) {
-        // TODO: Apply multiple search filters
-        // TODO: Search by keyword in title/description
-        // TODO: Filter by date range, event type, venue
-        // TODO: Apply user-specific filters (recommendations)
-        // TODO: Sort results by relevance/date
-        // TODO: Return paginated results
-        return null;
+        List<Event> results = new ArrayList<>();
+        
+        for (Event event : events.values()) {
+            boolean matches = true;
+            
+            // Keyword search
+            if (criteria.getKeyword() != null && !criteria.getKeyword().trim().isEmpty()) {
+                String keyword = criteria.getKeyword().toLowerCase();
+                if (!event.getTitle().toLowerCase().contains(keyword) &&
+                    !event.getDescription().toLowerCase().contains(keyword)) {
+                    matches = false;
+                }
+            }
+            
+            // Event type filter
+            if (criteria.getEventType() != null && event.getEventType() != criteria.getEventType()) {
+                matches = false;
+            }
+            
+            // Date range filter
+            if (criteria.getStartDate() != null && event.getStartDateTime().isBefore(criteria.getStartDate())) {
+                matches = false;
+            }
+            if (criteria.getEndDate() != null && event.getStartDateTime().isAfter(criteria.getEndDate())) {
+                matches = false;
+            }
+            
+            if (matches) {
+                results.add(event);
+            }
+        }
+        
+        return results;
     }
     
+    /**
+     * Retrieves events organized by a specific organizer
+     * PARAMS: organizerId
+     */
     public List<Event> getEventsByOrganizer(String organizerId) {
-        // TODO: Return events from organizer index
-        // TODO: Sort by creation date or event date
-        return eventsByOrganizer.get(organizerId);
+        return eventsByOrganizer.getOrDefault(organizerId, new ArrayList<>());
+    }
+    
+    /**
+     * Retrieves upcoming events (events with start time in the future)
+     */
+    public List<Event> getUpcomingEvents() {
+        List<Event> upcoming = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (Event event : events.values()) {
+            if (event.getStartDateTime().isAfter(now)) {
+                upcoming.add(event);
+            }
+        }
+        
+        return upcoming;
+    }
+    
+    /**
+     * Retrieves events filtered by specific event type
+     * PARAMS: type
+     */
+    public List<Event> getEventsByType(EventType type) {
+        return eventsByType.getOrDefault(type, new ArrayList<>());
     }
     
     public List<Conflict> validateEventConflicts(Event event) {
@@ -96,8 +226,6 @@ public class EventManager {
     }
     
     // TODO: Add additional event management methods
-    // public List<Event> getUpcomingEvents()
-    // public List<Event> getEventsByType(EventType type)
     // public boolean approveEvent(String eventId)
     // public Map<String, Integer> getEventStatistics()
 }

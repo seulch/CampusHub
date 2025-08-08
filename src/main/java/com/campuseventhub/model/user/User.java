@@ -22,57 +22,76 @@ public abstract class User implements Serializable {
     protected String userId;
     protected String username;
     protected String email;
-    protected String password; // Will be hashed
+    protected String password; // Will be hashed 
     protected String firstName;
     protected String lastName;
     protected UserStatus status;
     protected LocalDateTime createdAt;
     protected LocalDateTime lastLoginAt;
     
+    /**
+     * Creates a new user with basic information
+     * PARAMS: username, email, password, firstName, lastName
+     */
     protected User(String username, String email, String password, 
                    String firstName, String lastName) {
         this.userId = java.util.UUID.randomUUID().toString();
         this.username = username;
         this.email = email;
-        // TODO: Hash password using secure algorithm (BCrypt)
-        this.password = password;
+        this.password = password; // Simple password storage for project, maybe change to secure hash algo later (Bcrypt)
         this.firstName = firstName;
         this.lastName = lastName;
         this.status = UserStatus.ACTIVE;
         this.createdAt = LocalDateTime.now();
-        // TODO: Initialize any collections
     }
     
+    /**
+     * Authenticates user login with username and password
+     * PARAMS: username, password
+     */
     public boolean login(String username, String password) {
-        // TODO: Verify username and hashed password
-        // TODO: Check if account is active and not suspended
-        // TODO: Update lastLoginAt timestamp
-        // TODO: Log successful/failed login attempts
-        // TODO: Return authentication result
+        if (this.username.equals(username) && this.password.equals(password)) {
+            if (status == UserStatus.ACTIVE) {
+                this.lastLoginAt = LocalDateTime.now();
+                return true;
+            }
+        }
         return false;
     }
     
+    /**
+     * Handles user logout process
+     */
     public void logout() {
-        // TODO: Clear any session data
-        // TODO: Log logout event
-        // TODO: Notify observers of logout event
+        // Simple logout for project (For now)
     }
     
+    /**
+     * Updates user profile information
+     * PARAMS: firstName, lastName, email
+     */
     public void updateProfile(String firstName, String lastName, String email) {
-        // TODO: Validate input parameters
-        // TODO: Check if email is already in use by another user
-        // TODO: Update profile information
-        // TODO: Log profile update event
-        // TODO: Notify observers of profile changes
+        if (firstName != null && !firstName.trim().isEmpty()) {
+            this.firstName = firstName;
+        }
+        if (lastName != null && !lastName.trim().isEmpty()) {
+            this.lastName = lastName;
+        }
+        if (email != null && !email.trim().isEmpty()) {
+            this.email = email;
+        }
     }
     
-    // Abstract method to be implemented by subclasses
+    /**
+     * Returns the specific role of the user
+     */
     public abstract UserRole getRole();
     
+    /**
+     * Checks if user account is currently active
+     */
     public boolean isActive() {
-        // TODO: Check if user status is ACTIVE
-        // TODO: Consider any temporary restrictions
-        return false;
+        return status == UserStatus.ACTIVE;
     }
     
     public String getUserId() { return userId; }

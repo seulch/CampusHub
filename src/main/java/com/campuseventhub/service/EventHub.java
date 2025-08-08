@@ -8,6 +8,7 @@ import com.campuseventhub.model.user.User;
 import com.campuseventhub.model.user.UserRole;
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.EventType;
+import com.campuseventhub.model.event.EventSearchCriteria;
 import com.campuseventhub.model.report.Report;
 import com.campuseventhub.model.venue.Venue;
 import java.util.List;
@@ -36,15 +37,20 @@ public class EventHub {
     private User currentUser;
     private boolean isInitialized;
     
+    /**
+     * Initializes all manager services
+     */
     private EventHub() {
+        this.userManager = new UserManager();
+        this.eventManager = new EventManager();
         this.venueManager = new VenueManager();
-        // TODO: Initialize other manager services
-        // TODO: Load data from persistence layer
-        // TODO: Set up system configuration
-        // TODO: Initialize notification service
-        // TODO: Set initialization flag
+        this.notificationService = new NotificationService();
+        this.isInitialized = true;
     }
     
+    /**
+     * Returns the singleton instance of EventHub
+     */
     public static EventHub getInstance() {
         if (instance == null) {
             synchronized (lock) {
@@ -56,78 +62,97 @@ public class EventHub {
         return instance;
     }
     
+    /**
+     * Authenticates user login and sets current user session
+     * PARAMS: username, password
+     */
     public User authenticateUser(String username, String password) {
-        // TODO: Delegate to UserManager for authentication
-        // TODO: Set currentUser if authentication successful
-        // TODO: Log login attempt
-        // TODO: Initialize user session
-        // TODO: Return authenticated user or null
-        return null;
+        User user = userManager.validateCredentials(username, password);
+        if (user != null) {
+            this.currentUser = user;
+        }
+        return user;
     }
     
+    /**
+     * Registers a new user account in the system
+     * PARAMS: username, email, password, firstName, lastName, role
+     */
     public boolean registerUser(String username, String email, String password,
                                String firstName, String lastName, UserRole role) {
-        // TODO: Delegate to UserManager for user creation
-        // TODO: Send welcome notification
-        // TODO: Log user registration
-        // TODO: Return registration success status
-        return false;
+        User user = userManager.createUser(username, email, password, firstName, lastName, role);
+        return user != null;
     }
     
-    public Event createEvent(/* event parameters */) {
-        // TODO: Verify current user is organizer
-        // TODO: Delegate to EventManager
-        // TODO: Handle venue booking if specified
-        // TODO: Send notifications to relevant parties
-        // TODO: Return created event
-        return null;
+    /**
+     * Creates a new event (Organizer only)
+     * PARAMS: title, description, eventType, startDateTime, endDateTime, organizerId, venueId, maxCapacity
+     */
+    public Event createEvent(String title, String description, EventType eventType,
+                           LocalDateTime startDateTime, LocalDateTime endDateTime,
+                           String organizerId, String venueId, int maxCapacity) {
+        if (currentUser == null || currentUser.getRole() != UserRole.ORGANIZER) {
+            return null;
+        }
+        
+        return eventManager.createEvent(title, description, eventType, startDateTime, 
+                                     endDateTime, organizerId, venueId);
     }
     
+    /**
+     * Searches for events based on specified criteria
+     * PARAMS: keyword, type, startDate, endDate
+     */
     public List<Event> searchEvents(String keyword, EventType type,
                                    LocalDateTime startDate, LocalDateTime endDate) {
-        // TODO: Delegate to EventManager for search
-        // TODO: Apply user-specific filters if needed
-        // TODO: Return filtered and sorted results
-        return null;
+        EventSearchCriteria criteria = new EventSearchCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setEventType(type);
+        criteria.setStartDate(startDate);
+        criteria.setEndDate(endDate);
+        
+        return eventManager.searchEvents(criteria);
     }
-
+    
+    /**
+     * Adds a new venue to the system (Admin only)
+     * PARAMS: venue
+     */
     public boolean addVenue(Venue venue) {
-        // TODO: Delegate to VenueManager for venue creation
-        // TODO: Perform authorization checks
-        // TODO: Log venue creation
-        return false;
+        if (currentUser == null || currentUser.getRole() != UserRole.ADMIN) {
+            return false;
+        }
+        return venueManager.addVenue(venue);
     }
-
-    public boolean updateVenue(String venueId, Map<String, Object> updates) {
-        // TODO: Delegate to VenueManager for venue update
-        // TODO: Validate permissions and venue status
-        // TODO: Log venue update
-        return false;
-    }
-
+    
+    /**
+     * Retrieves all venues in the system
+     */
     public List<Venue> listVenues() {
-        // TODO: Delegate to VenueManager for retrieval
-        // TODO: Apply any necessary filters or sorting
-        return null;
+        return venueManager.listVenues();
     }
     
-    public Report generateReport(String reportType, Map<String, Object> parameters) {
-        // TODO: Verify current user has permission for report type
-        // TODO: Delegate to appropriate report generator
-        // TODO: Log report generation
-        // TODO: Return generated report
-        return null;
+    /**
+     * Returns the currently logged-in user
+     */
+    public User getCurrentUser() {
+        return currentUser;
     }
     
-    public void shutdown() {
-        // TODO: Save all data to persistence layer
-        // TODO: Close any open resources
-        // TODO: Log system shutdown
-        // TODO: Clean up temporary files
+    /**
+     * Checks if a user is currently logged in
+     */
+    public boolean isUserLoggedIn() {
+        return currentUser != null;
     }
     
-    // TODO: Add session management methods
-    // public boolean isUserLoggedIn()
-    // public void logoutCurrentUser()
-    // public User getCurrentUser()
+    /**
+     * Logs out the current user and clears session
+     */
+    public void logoutCurrentUser() {
+        if (currentUser != null) {
+            currentUser.logout();
+            currentUser = null;
+        }
+    }
 }
