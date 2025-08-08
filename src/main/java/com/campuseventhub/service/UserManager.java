@@ -6,6 +6,9 @@ package com.campuseventhub.service;
 
 import com.campuseventhub.model.user.User;
 import com.campuseventhub.model.user.UserRole;
+import com.campuseventhub.model.user.Admin;
+import com.campuseventhub.model.user.Organizer;
+import com.campuseventhub.model.user.Attendee;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -28,7 +31,9 @@ public class UserManager {
     private Map<String, User> usersByUsername;
     
     public UserManager() {
-        // TODO: Initialize concurrent hash maps for thread safety
+        this.users = new ConcurrentHashMap<>();
+        this.usersByEmail = new ConcurrentHashMap<>();
+        this.usersByUsername = new ConcurrentHashMap<>();
         // TODO: Load existing users from persistence
         // TODO: Validate data integrity
         // TODO: Set up indexing for quick lookups
@@ -36,37 +41,100 @@ public class UserManager {
     
     public User createUser(String username, String email, String password,
                           String firstName, String lastName, UserRole role) {
-        // TODO: Validate all input parameters
-        // TODO: Check username and email uniqueness
-        // TODO: Create appropriate user subclass based on role
-        // TODO: Add to all maps for indexing
+        if (username == null || username.trim().isEmpty() ||
+            email == null || email.trim().isEmpty() ||
+            password == null || password.trim().isEmpty() ||
+            firstName == null || firstName.trim().isEmpty() ||
+            lastName == null || lastName.trim().isEmpty() ||
+            role == null) {
+            return null;
+        }
+        
+        if (usersByUsername.containsKey(username) || usersByEmail.containsKey(email)) {
+            return null;
+        }
+        
+        User user = null;
+        switch (role) {
+            case ADMIN:
+                user = new Admin(username, email, password, firstName, lastName, "SYSTEM_ADMIN");
+                break;
+            case ORGANIZER:
+                user = new Organizer(username, email, password, firstName, lastName, "General");
+                break;
+            case ATTENDEE:
+                user = new Attendee(username, email, password, firstName, lastName);
+                break;
+            default:
+                return null;
+        }
+        
+        users.put(user.getUserId(), user);
+        usersByEmail.put(email, user);
+        usersByUsername.put(username, user);
         // TODO: Save to persistence layer
         // TODO: Log user creation
-        return null;
+        return user;
     }
     
     public User getUserById(String userId) {
-        // TODO: Return user from users map
-        // TODO: Handle null cases gracefully
         return users.get(userId);
     }
     
     public User validateCredentials(String username, String password) {
-        // TODO: Find user by username
-        // TODO: Verify password hash
-        // TODO: Check account status (active, suspended, etc.)
-        // TODO: Update last login timestamp
-        // TODO: Log authentication attempt
+        User user = usersByUsername.get(username);
+        if (user == null) {
+            return null;
+        }
+        
+        if (password.equals(user.getPassword())) {
+            // TODO: Check account status (active, suspended, etc.)
+            // TODO: Update last login timestamp
+            // TODO: Log authentication attempt
+            return user;
+        }
+        
         return null;
     }
     
     public boolean updateUser(String userId, Map<String, Object> updates) {
-        // TODO: Find user and validate update permissions
-        // TODO: Apply updates with validation
+        User user = users.get(userId);
+        if (user == null) {
+            return false;
+        }
+        
+        for (Map.Entry<String, Object> entry : updates.entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+            
+            switch (field) {
+                case "firstName":
+                    if (value instanceof String) {
+                        user.setFirstName((String) value);
+                    }
+                    break;
+                case "lastName":
+                    if (value instanceof String) {
+                        user.setLastName((String) value);
+                    }
+                    break;
+                case "email":
+                    if (value instanceof String) {
+                        String newEmail = (String) value;
+                        if (!usersByEmail.containsKey(newEmail)) {
+                            usersByEmail.remove(user.getEmail());
+                            user.setEmail(newEmail);
+                            usersByEmail.put(newEmail, user);
+                        }
+                    }
+                    break;
+                // Add more fields as needed
+            }
+        }
         // TODO: Update indexes if username/email changed
         // TODO: Save changes to persistence
         // TODO: Log update operation
-        return false;
+        return true;
     }
     
     public List<User> getAllUsers() {

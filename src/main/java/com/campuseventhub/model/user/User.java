@@ -31,11 +31,15 @@ public abstract class User implements Serializable {
     
     protected User(String username, String email, String password, 
                    String firstName, String lastName) {
-        // TODO: Generate unique userId using UUID
+        this.userId = java.util.UUID.randomUUID().toString();
+        this.username = username;
+        this.email = email;
         // TODO: Hash password using secure algorithm (BCrypt)
-        // TODO: Validate email format and username constraints
-        // TODO: Set initial status based on user type
-        // TODO: Set createdAt timestamp
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.status = UserStatus.ACTIVE;
+        this.createdAt = LocalDateTime.now();
         // TODO: Initialize any collections
     }
     
@@ -71,7 +75,23 @@ public abstract class User implements Serializable {
         return false;
     }
     
-    // TODO: Add getters and setters with proper validation
+    public String getUserId() { return userId; }
+    public String getUsername() { return username; }
+    public String getEmail() { return email; }
+    public String getPassword() { return password; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public UserStatus getStatus() { return status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getLastLoginAt() { return lastLoginAt; }
+    
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setEmail(String email) { this.email = email; }
+    public void setPassword(String password) { this.password = password; }
+    public void setStatus(UserStatus status) { this.status = status; }
+    public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+    
     // TODO: Add equals() and hashCode() methods
     // TODO: Add toString() method for debugging
 }

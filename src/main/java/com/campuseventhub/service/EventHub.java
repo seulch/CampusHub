@@ -37,7 +37,6 @@ public class EventHub {
     private boolean isInitialized;
     
     private EventHub() {
-        // TODO: Initialize all manager services
         this.venueManager = new VenueManager();
         // TODO: Initialize other manager services
         // TODO: Load data from persistence layer
