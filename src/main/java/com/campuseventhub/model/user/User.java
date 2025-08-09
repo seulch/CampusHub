@@ -111,6 +111,23 @@ public abstract class User implements Serializable {
     public void setStatus(UserStatus status) { this.status = status; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     
-    // TODO: Add equals() and hashCode() methods
-    // TODO: Add toString() method for debugging
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        
+        User user = (User) obj;
+        return userId.equals(user.userId);
+    }
+    
+    @Override
+    public int hashCode() {
+        return userId.hashCode();
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("User{userId='%s', username='%s', email='%s', firstName='%s', lastName='%s', role='%s', status='%s'}", 
+                           userId, username, email, firstName, lastName, getRole(), status);
+    }
 }

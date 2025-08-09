@@ -5,6 +5,11 @@
 package com.campuseventhub.gui.common;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.LoginFrame;
 
 /**
  * Common base frame that provides shared window configuration for all
@@ -12,6 +17,9 @@ import javax.swing.*;
  * to perform component creation and event binding.
  */
 public abstract class BaseFrame extends JFrame {
+    protected EventHub eventHub;
+    protected JMenuBar menuBar;
+    protected JMenu userMenu;
 
     /**
      * Constructs the frame with a provided window title and applies common
@@ -21,7 +29,9 @@ public abstract class BaseFrame extends JFrame {
      */
     protected BaseFrame(String title) {
         super(title);
+        this.eventHub = EventHub.getInstance();
         configureWindow();
+        createMenuBar();
     }
 
     /**
@@ -31,6 +41,50 @@ public abstract class BaseFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1024, 768);
         setLocationRelativeTo(null);
+    }
+    
+    /**
+     * Creates the common menu bar with user actions
+     */
+    private void createMenuBar() {
+        menuBar = new JMenuBar();
+        
+        // User Menu
+        userMenu = new JMenu("User");
+        if (eventHub.isUserLoggedIn()) {
+            userMenu.setText("User (" + eventHub.getCurrentUser().getUsername() + ")");
+        }
+        
+        JMenuItem logoutItem = new JMenuItem("Logout");
+        logoutItem.addActionListener(e -> performLogout());
+        userMenu.add(logoutItem);
+        
+        menuBar.add(Box.createHorizontalGlue()); // Push user menu to right
+        menuBar.add(userMenu);
+        
+        setJMenuBar(menuBar);
+    }
+    
+    /**
+     * Handles user logout and returns to login screen
+     */
+    protected void performLogout() {
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            "Are you sure you want to logout?",
+            "Confirm Logout",
+            JOptionPane.YES_NO_OPTION
+        );
+        
+        if (choice == JOptionPane.YES_OPTION) {
+            eventHub.logoutCurrentUser();
+            dispose();
+            
+            SwingUtilities.invokeLater(() -> {
+                LoginFrame loginFrame = new LoginFrame();
+                loginFrame.setVisible(true);
+            });
+        }
     }
 
     // ---------------------------------------------------------------------

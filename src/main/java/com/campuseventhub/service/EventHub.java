@@ -155,4 +155,34 @@ public class EventHub {
             currentUser = null;
         }
     }
+    
+    /**
+     * Retrieves all users in the system
+     */
+    public List<User> getAllUsers() {
+        return userManager.getAllUsers();
+    }
+    
+    /**
+     * Retrieves users filtered by specific role
+     * PARAMS: role
+     */
+    public List<User> getUsersByRole(UserRole role) {
+        return userManager.getUsersByRole(role);
+    }
+    
+    /**
+     * Retrieves upcoming events (events with start time in the future)
+     */
+    public List<Event> getUpcomingEvents() {
+        return eventManager.getUpcomingEvents();
+    }
+    
+    /**
+     * Retrieves events organized by a specific organizer
+     * PARAMS: organizerId
+     */
+    public List<Event> getEventsByOrganizer(String organizerId) {
+        return eventManager.getEventsByOrganizer(organizerId);
+    }
 }

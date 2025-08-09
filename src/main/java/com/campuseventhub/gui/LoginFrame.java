@@ -12,6 +12,8 @@ import com.campuseventhub.model.user.User;
 import com.campuseventhub.model.user.Admin;
 import com.campuseventhub.model.user.Organizer;
 import com.campuseventhub.model.user.Attendee;
+import com.campuseventhub.model.user.UserRole;
+import com.campuseventhub.service.EventHub;
 import com.campuseventhub.gui.admin.AdminDashboard;
 import com.campuseventhub.gui.organizer.OrganizerDashboard;
 import com.campuseventhub.gui.attendee.AttendeeDashboard;
@@ -146,11 +148,21 @@ public class LoginFrame extends JFrame {
     
     private void openAdminDashboard() {
         try {
-            // temporary admin user for testing
-            Admin admin = new Admin("admin", "admin@test.com", "admin", "Admin", "User", "SYSTEM_ADMIN");
-            AdminDashboard dashboard = new AdminDashboard(admin);
-            dashboard.setVisible(true);
-            this.dispose(); // Close login window
+            // Create temporary admin user and register with EventHub
+            EventHub eventHub = EventHub.getInstance();
+            
+            // Try to register user (will fail silently if already exists)
+            eventHub.registerUser("admin", "admin@test.com", "admin", "Admin", "User", UserRole.ADMIN);
+            
+            // Authenticate the user
+            User authenticatedUser = eventHub.authenticateUser("admin", "admin");
+            if (authenticatedUser != null && authenticatedUser instanceof Admin) {
+                AdminDashboard dashboard = new AdminDashboard((Admin) authenticatedUser);
+                dashboard.setVisible(true);
+                this.dispose(); // Close login window
+            } else {
+                statusLabel.setText("Failed to authenticate admin user");
+            }
         } catch (Exception e) {
             statusLabel.setText("Error opening admin dashboard: " + e.getMessage());
         }
@@ -158,11 +170,21 @@ public class LoginFrame extends JFrame {
     
     private void openOrganizerDashboard() {
         try {
-            // temporary organizer user for testing
-            Organizer organizer = new Organizer("organizer", "organizer@test.com", "organizer", "Test", "Organizer", "General");
-            OrganizerDashboard dashboard = new OrganizerDashboard(organizer);
-            dashboard.setVisible(true);
-            this.dispose(); // Close login window
+            // Create temporary organizer user and register with EventHub
+            EventHub eventHub = EventHub.getInstance();
+            
+            // Try to register user (will fail silently if already exists)
+            eventHub.registerUser("organizer", "organizer@test.com", "organizer", "Test", "Organizer", UserRole.ORGANIZER);
+            
+            // Authenticate the user
+            User authenticatedUser = eventHub.authenticateUser("organizer", "organizer");
+            if (authenticatedUser != null && authenticatedUser instanceof Organizer) {
+                OrganizerDashboard dashboard = new OrganizerDashboard((Organizer) authenticatedUser);
+                dashboard.setVisible(true);
+                this.dispose(); // Close login window
+            } else {
+                statusLabel.setText("Failed to authenticate organizer user");
+            }
         } catch (Exception e) {
             statusLabel.setText("Error opening organizer dashboard: " + e.getMessage());
         }
@@ -170,11 +192,21 @@ public class LoginFrame extends JFrame {
     
     private void openAttendeeDashboard() {
         try {
-            // temporary attendee user for testing
-            Attendee attendee = new Attendee("attendee", "attendee@test.com", "attendee", "Test", "Student");
-            AttendeeDashboard dashboard = new AttendeeDashboard(attendee);
-            dashboard.setVisible(true);
-            this.dispose(); // Close login window
+            // Create temporary attendee user and register with EventHub
+            EventHub eventHub = EventHub.getInstance();
+            
+            // Try to register user (will fail silently if already exists)
+            eventHub.registerUser("attendee", "attendee@test.com", "attendee", "Test", "Student", UserRole.ATTENDEE);
+            
+            // Authenticate the user
+            User authenticatedUser = eventHub.authenticateUser("attendee", "attendee");
+            if (authenticatedUser != null && authenticatedUser instanceof Attendee) {
+                AttendeeDashboard dashboard = new AttendeeDashboard((Attendee) authenticatedUser);
+                dashboard.setVisible(true);
+                this.dispose(); // Close login window
+            } else {
+                statusLabel.setText("Failed to authenticate attendee user");
+            }
         } catch (Exception e) {
             statusLabel.setText("Error opening attendee dashboard: " + e.getMessage());
         }

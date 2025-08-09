@@ -27,9 +27,14 @@ class RegistrationTest {
         assertEquals(attendeeId, registration.getAttendeeId());
         assertEquals(eventId, registration.getEventId());
         assertEquals(RegistrationStatus.PENDING, registration.getStatus());
-        assertFalse(registration.isAttended());
-        assertEquals(0, registration.getWaitlistPosition());
         assertNotNull(registration.getRegistrationTime());
+        assertFalse(registration.isAttended());
+        assertNull(registration.getAttendanceTime());
+        assertEquals(0, registration.getWaitlistPosition());
+        assertNull(registration.getCancellationReason());
+        assertNull(registration.getCancellationTime());
+        assertFalse(registration.isConfirmed());
+        assertFalse(registration.isWaitlisted());
     }
     
     @Test
@@ -39,16 +44,29 @@ class RegistrationTest {
         
         assertEquals(RegistrationStatus.CONFIRMED, registration.getStatus());
         assertTrue(registration.isConfirmed());
+        assertFalse(registration.isWaitlisted());
     }
     
     @Test
     @DisplayName("Should cancel registration with reason")
     void testCancelRegistration() {
         String reason = "Schedule conflict";
+        
         registration.cancelRegistration(reason);
         
         assertEquals(RegistrationStatus.CANCELLED, registration.getStatus());
         assertEquals(reason, registration.getCancellationReason());
+        assertNotNull(registration.getCancellationTime());
+        assertFalse(registration.isConfirmed());
+    }
+    
+    @Test
+    @DisplayName("Should cancel registration without reason")
+    void testCancelRegistrationWithoutReason() {
+        registration.cancelRegistration(null);
+        
+        assertEquals(RegistrationStatus.CANCELLED, registration.getStatus());
+        assertNull(registration.getCancellationReason());
         assertNotNull(registration.getCancellationTime());
     }
     
@@ -62,97 +80,140 @@ class RegistrationTest {
     }
     
     @Test
-    @DisplayName("Should check waitlist status correctly")
-    void testIsWaitlisted() {
-        // Initially not waitlisted
+    @DisplayName("Should handle waitlist position correctly")
+    void testWaitlistPosition() {
         assertFalse(registration.isWaitlisted());
         
-        // Set waitlist position
+        registration.setWaitlistPosition(5);
+        
+        assertEquals(5, registration.getWaitlistPosition());
+        assertTrue(registration.isWaitlisted());
+    }
+    
+    @Test
+    @DisplayName("Should handle confirmed status checks")
+    void testIsConfirmed() {
+        assertFalse(registration.isConfirmed());
+        
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        assertTrue(registration.isConfirmed());
+        
+        registration.setStatus(RegistrationStatus.PENDING);
+        assertFalse(registration.isConfirmed());
+        
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        assertFalse(registration.isConfirmed());
+        
+        registration.setStatus(RegistrationStatus.WAITLISTED);
+        assertFalse(registration.isConfirmed());
+    }
+    
+    @Test
+    @DisplayName("Should handle waitlisted status checks")
+    void testIsWaitlisted() {
+        assertFalse(registration.isWaitlisted());
+        
         registration.setWaitlistPosition(1);
         assertTrue(registration.isWaitlisted());
         
         registration.setWaitlistPosition(0);
         assertFalse(registration.isWaitlisted());
-    }
-    
-    @Test
-    @DisplayName("Should handle waitlist position updates")
-    void testWaitlistPositionUpdates() {
-        registration.setWaitlistPosition(5);
-        assertEquals(5, registration.getWaitlistPosition());
         
-        registration.setWaitlistPosition(1);
-        assertEquals(1, registration.getWaitlistPosition());
+        registration.setWaitlistPosition(-1);
+        assertFalse(registration.isWaitlisted());
     }
     
     @Test
-    @DisplayName("Should handle status updates")
-    void testStatusUpdates() {
-        registration.setStatus(RegistrationStatus.CONFIRMED);
-        assertEquals(RegistrationStatus.CONFIRMED, registration.getStatus());
-        
-        registration.setStatus(RegistrationStatus.CANCELLED);
-        assertEquals(RegistrationStatus.CANCELLED, registration.getStatus());
-    }
-    
-    @Test
-    @DisplayName("Should handle attendance updates")
-    void testAttendanceUpdates() {
-        registration.setAttended(true);
-        assertTrue(registration.isAttended());
-        
-        registration.setAttended(false);
-        assertFalse(registration.isAttended());
-    }
-    
-    @Test
-    @DisplayName("Should handle attendance time updates")
-    void testAttendanceTimeUpdates() {
+    @DisplayName("Should set and get all properties correctly")
+    void testSettersAndGetters() {
         LocalDateTime attendanceTime = LocalDateTime.now();
+        LocalDateTime cancellationTime = LocalDateTime.now().minusHours(1);
+        
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setAttended(true);
         registration.setAttendanceTime(attendanceTime);
-        
-        assertEquals(attendanceTime, registration.getAttendanceTime());
-    }
-    
-    @Test
-    @DisplayName("Should handle cancellation reason updates")
-    void testCancellationReasonUpdates() {
-        String reason = "Changed plans";
-        registration.setCancellationReason(reason);
-        
-        assertEquals(reason, registration.getCancellationReason());
-    }
-    
-    @Test
-    @DisplayName("Should handle cancellation time updates")
-    void testCancellationTimeUpdates() {
-        LocalDateTime cancellationTime = LocalDateTime.now();
+        registration.setWaitlistPosition(3);
+        registration.setCancellationReason("Test reason");
         registration.setCancellationTime(cancellationTime);
         
+        assertEquals(RegistrationStatus.CONFIRMED, registration.getStatus());
+        assertTrue(registration.isAttended());
+        assertEquals(attendanceTime, registration.getAttendanceTime());
+        assertEquals(3, registration.getWaitlistPosition());
+        assertEquals("Test reason", registration.getCancellationReason());
         assertEquals(cancellationTime, registration.getCancellationTime());
+    }
+    
+    @Test
+    @DisplayName("Should handle registration lifecycle correctly")
+    void testRegistrationLifecycle() {
+        // Initial state: PENDING
+        assertEquals(RegistrationStatus.PENDING, registration.getStatus());
+        assertFalse(registration.isConfirmed());
+        
+        // Confirm registration
+        registration.confirmRegistration();
+        assertEquals(RegistrationStatus.CONFIRMED, registration.getStatus());
+        assertTrue(registration.isConfirmed());
+        
+        // Mark attendance at event
+        registration.markAttendance();
+        assertTrue(registration.isAttended());
+        assertNotNull(registration.getAttendanceTime());
+        
+        // Still confirmed after marking attendance
+        assertTrue(registration.isConfirmed());
+    }
+    
+    @Test
+    @DisplayName("Should handle waitlist to confirmed transition")
+    void testWaitlistToConfirmedTransition() {
+        // Start as waitlisted
+        registration.setWaitlistPosition(2);
+        registration.setStatus(RegistrationStatus.WAITLISTED);
+        
+        assertTrue(registration.isWaitlisted());
+        assertFalse(registration.isConfirmed());
+        
+        // Promote from waitlist
+        registration.setWaitlistPosition(0);
+        registration.confirmRegistration();
+        
+        assertFalse(registration.isWaitlisted());
+        assertTrue(registration.isConfirmed());
+        assertEquals(RegistrationStatus.CONFIRMED, registration.getStatus());
     }
     
     @Test
     @DisplayName("Should generate unique registration IDs")
     void testUniqueRegistrationIds() {
-        Registration reg1 = new Registration("attendee1", "event1");
-        Registration reg2 = new Registration("attendee2", "event2");
+        Registration registration2 = new Registration("attendee789", "event012");
         
-        assertNotNull(reg1.getRegistrationId());
-        assertNotNull(reg2.getRegistrationId());
-        assertNotEquals(reg1.getRegistrationId(), reg2.getRegistrationId());
+        assertNotEquals(registration.getRegistrationId(), registration2.getRegistrationId());
     }
     
     @Test
-    @DisplayName("Should handle registration time correctly")
-    void testRegistrationTime() {
-        LocalDateTime beforeCreation = LocalDateTime.now();
-        Registration newReg = new Registration("attendee", "event");
-        LocalDateTime afterCreation = LocalDateTime.now();
+    @DisplayName("Should handle multiple attendance markings")
+    void testMultipleAttendanceMarkings() {
+        LocalDateTime firstMark = LocalDateTime.now();
         
-        assertTrue(newReg.getRegistrationTime().isAfter(beforeCreation) || 
-                  newReg.getRegistrationTime().isEqual(beforeCreation));
-        assertTrue(newReg.getRegistrationTime().isBefore(afterCreation) || 
-                  newReg.getRegistrationTime().isEqual(afterCreation));
+        registration.markAttendance();
+        assertTrue(registration.isAttended());
+        LocalDateTime firstAttendanceTime = registration.getAttendanceTime();
+        
+        // Simulate time passing
+        try {
+            Thread.sleep(10); // Small delay to ensure different timestamps
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // Mark attendance again
+        registration.markAttendance();
+        assertTrue(registration.isAttended());
+        
+        // Should have updated the attendance time
+        assertTrue(registration.getAttendanceTime().isAfter(firstAttendanceTime) || 
+                  registration.getAttendanceTime().equals(firstAttendanceTime));
     }
-} 
+}

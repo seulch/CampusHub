@@ -10,6 +10,8 @@ import com.campuseventhub.model.notification.NotificationType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Service for handling all system notifications using Strategy pattern.
@@ -28,43 +30,45 @@ public class NotificationService {
     private NotificationTemplateManager templateManager;
 
     public NotificationService() {
-        // TODO: Initialize notification strategies
-        // TODO: Load user notification preferences
-        // TODO: Initialize template manager
+        this.strategies = new ArrayList<>();
+        this.userNotifications = new ConcurrentHashMap<>();
         this.templateManager = new NotificationTemplateManager();
         this.templateManager.loadTemplates();
-        // TODO: Set up delivery queues
     }
 
     public void sendNotification(String message, List<String> recipients,
                                NotificationType type) {
-        // TODO: Validate message and recipients
-        // TODO: Apply user notification preferences
-        // TODO: Choose appropriate delivery strategies
+        if (message == null || message.trim().isEmpty() || recipients == null || recipients.isEmpty()) {
+            return;
+        }
+        
         String template = templateManager.getTemplate(type);
-        // TODO: Merge template with message content
-        // TODO: Create Notification instances
-        // TODO: Queue for delivery
-        // TODO: Track delivery status
+        String finalMessage = template != null ? template.replace("{message}", message) : message;
+        
+        // Create notification for each recipient
+        for (String recipientId : recipients) {
+            Notification notification = new Notification(recipientId, finalMessage, type);
+            userNotifications.computeIfAbsent(recipientId, k -> new ArrayList<>()).add(notification);
+        }
     }
     
     public void addNotificationStrategy(NotificationStrategy strategy) {
-        // TODO: Add strategy to available strategies list
-        // TODO: Initialize strategy if needed
-        strategies.add(strategy);
+        if (strategy != null) {
+            strategies.add(strategy);
+        }
     }
     
     public void scheduleNotification(String message, List<String> recipients,
                                    LocalDateTime sendTime, NotificationType type) {
-        // TODO: Create scheduled notification entry
-        // TODO: Set up timer for future delivery
-        // TODO: Store in scheduled notifications queue
+        // Simple implementation for now - just send immediately if time has passed
+        if (sendTime.isBefore(LocalDateTime.now()) || sendTime.isEqual(LocalDateTime.now())) {
+            sendNotification(message, recipients, type);
+        }
+        // TODO: Implement proper scheduling for future times
     }
     
     public List<Notification> getUserNotifications(String userId) {
-        // TODO: Return notifications for specific user
-        // TODO: Mark as delivered when retrieved
-        return userNotifications.get(userId);
+        return userNotifications.getOrDefault(userId, new ArrayList<>());
     }
     
     // TODO: Add notification management methods

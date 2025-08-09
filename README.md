@@ -1,4 +1,3 @@
-Proposal:
 # Campus EventHub  
 **OOP Final Project Proposal**
 
@@ -13,19 +12,14 @@ Campus EventHub is a comprehensive event management system designed for universi
 
 To build and run, follow these steps:
 
-1. **Open a terminal and navigate to the project directory:**
+1. **Open terminal and navigate to the project directory:**
    ```sh
    cd [path_to_CampusHub]
    ```
 
-2. **Build project with Maven:**
+2. **Build Run application with Maven:**
    ```sh
    mvn clean install
-   ```
-   This will compile the code, download dependencies, and package the application.
-
-3. **Run application:**
-   ```sh
    mvn exec:java
    ```
    This will start the main application (GUI) as defined in the `pom.xml`.
