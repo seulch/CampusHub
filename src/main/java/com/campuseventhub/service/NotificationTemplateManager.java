@@ -24,18 +24,11 @@ public class NotificationTemplateManager {
     }
 
     public void loadTemplates() {
-        // Load default templates
-        templates.put(NotificationType.EVENT_REGISTRATION_CONFIRMATION, 
-                     "Event Registration Confirmed: {message}");
-        templates.put(NotificationType.EVENT_CANCELLATION, 
-                     "Event Cancelled: {message}");
-        templates.put(NotificationType.EVENT_REMINDER, 
-                     "Event Reminder: {message}");
-        templates.put(NotificationType.SYSTEM_ANNOUNCEMENT, 
-                     "System Announcement: {message}");
+        // TODO: Load templates from configuration or persistence
     }
 
     public String getTemplate(NotificationType type) {
-        return templates.getOrDefault(type, "Notification: {message}");
+        // TODO: Return template for the given notification type
+        return templates.get(type);
     }
 }

@@ -25,6 +25,7 @@
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/gui/common/ComponentFactory.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/service/EventManager.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/model/user/Admin.java
+/home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/gui/admin/VenueManagementPanel.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/service/UserManager.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/model/event/EventType.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/model/user/Organizer.java
@@ -50,3 +51,4 @@
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/gui/organizer/EventManagementPanel.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/model/user/UserRole.java
 /home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/model/event/Conflict.java
+/home/seulchan/code/CampusHub/src/main/java/com/campuseventhub/gui/admin/SystemMetricsPanel.java

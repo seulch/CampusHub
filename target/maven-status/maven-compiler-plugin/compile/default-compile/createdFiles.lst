@@ -1,3 +1,4 @@
+com/campuseventhub/gui/admin/VenueManagementPanel.class
 com/campuseventhub/model/user/UserRole.class
 com/campuseventhub/model/event/EventSearchCriteria.class
 com/campuseventhub/gui/organizer/OrganizerDashboard.class
@@ -38,6 +39,7 @@ com/campuseventhub/strategy/InAppNotification.class
 com/campuseventhub/model/user/Admin.class
 com/campuseventhub/model/event/EventType.class
 com/campuseventhub/model/event/RegistrationStatus.class
+com/campuseventhub/gui/admin/SystemMetricsPanel.class
 com/campuseventhub/gui/admin/SystemReportsPanel.class
 com/campuseventhub/persistence/EventRepository.class
 com/campuseventhub/service/NotificationService.class
