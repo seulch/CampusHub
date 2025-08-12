@@ -9,79 +9,147 @@ import com.campuseventhub.model.user.UserRole;
 import com.campuseventhub.model.user.Admin;
 import com.campuseventhub.model.user.Organizer;
 import com.campuseventhub.model.user.Attendee;
+import com.campuseventhub.model.user.UserStatus;
+import com.campuseventhub.persistence.UserRepository;
+import com.campuseventhub.persistence.DataManager;
+import com.campuseventhub.util.ValidationUtil;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import com.campuseventhub.model.user.UserStatus;
+import java.io.IOException;
 
 /**
- * Service for managing user accounts and authentication.
+ * Simplified service for managing user accounts using composition of specialized services.
  * 
  * Implementation Details:
- * - Thread-safe user storage and retrieval
- * - Password hashing and verification
- * - User validation and business rules
- * - Account lifecycle management
- * - Security audit logging
- * - Email uniqueness enforcement
+ * - Coordinates between specialized user services
+ * - Implements UserRepository interface
+ * - Delegates to specialized services for specific operations
  */
-public class UserManager {
+public class UserManager implements UserRepository {
     private Map<String, User> users;
     private Map<String, User> usersByEmail;
     private Map<String, User> usersByUsername;
     
+    // Specialized services
+    private UserAuthenticationService authService;
+    private UserStatusService statusService;
+    private UserSearchService searchService;
+    
     /**
-     * Initializes thread-safe user storage maps
+     * Initializes thread-safe user storage maps and specialized services
      */
     public UserManager() {
         this.users = new ConcurrentHashMap<>();
         this.usersByEmail = new ConcurrentHashMap<>();
         this.usersByUsername = new ConcurrentHashMap<>();
-        // TODO: Load existing users from persistence
-        // TODO: Validate data integrity
-        // TODO: Set up indexing for quick lookups
+        
+        loadUsersFromPersistence();
+        
+        // Initialize specialized services
+        this.authService = new UserAuthenticationService(usersByUsername);
+        this.statusService = new UserStatusService(users);
+        this.searchService = new UserSearchService(users, usersByEmail, usersByUsername);
     }
     
     /**
-     * Creates a new user account with specified role
+     * Creates and persists a user. Implements UserRepository interface.
+     */
+    @Override
+    public void create(User user) {
+        if (user == null || user.getUserId() == null) {
+            throw new IllegalArgumentException("User and user ID cannot be null");
+        }
+        
+        String normalizedEmail = user.getEmail().trim().toLowerCase();
+        if (usersByUsername.containsKey(user.getUsername().trim()) || usersByEmail.containsKey(normalizedEmail)) {
+            throw new IllegalArgumentException("Username or email already exists");
+        }
+        
+        users.put(user.getUserId(), user);
+        usersByEmail.put(normalizedEmail, user);
+        usersByUsername.put(user.getUsername().trim(), user);
+        saveUsersToPersistence();
+    }
+    
+    /**
+     * Finds user by ID. Implements UserRepository interface.
+     */
+    @Override
+    public User findById(String userId) {
+        return users.get(userId);
+    }
+    
+    /**
+     * Returns all users. Implements UserRepository interface.
+     */
+    @Override
+    public List<User> findAll() {
+        return new ArrayList<>(users.values());
+    }
+    
+    /**
+     * Updates existing user. Implements UserRepository interface.
+     */
+    @Override
+    public void update(User user) {
+        if (user == null || user.getUserId() == null) {
+            throw new IllegalArgumentException("User and user ID cannot be null");
+        }
+        
+        User existingUser = users.get(user.getUserId());
+        if (existingUser == null) {
+            throw new IllegalArgumentException("User not found: " + user.getUserId());
+        }
+        
+        // Update indices if username or email changed
+        if (!existingUser.getUsername().equals(user.getUsername())) {
+            usersByUsername.remove(existingUser.getUsername());
+            usersByUsername.put(user.getUsername(), user);
+        }
+        
+        if (!existingUser.getEmail().toLowerCase().equals(user.getEmail().toLowerCase())) {
+            usersByEmail.remove(existingUser.getEmail().toLowerCase());
+            usersByEmail.put(user.getEmail().toLowerCase(), user);
+        }
+        
+        users.put(user.getUserId(), user);
+        saveUsersToPersistence();
+    }
+    
+    /**
+     * Deletes user by ID. Implements UserRepository interface.
+     */
+    @Override
+    public void deleteById(String userId) {
+        User user = users.remove(userId);
+        if (user != null) {
+            usersByUsername.remove(user.getUsername());
+            usersByEmail.remove(user.getEmail().toLowerCase());
+            saveUsersToPersistence();
+        }
+    }
+
+    /**
+     * Creates a new user account with specified role using UserFactory
      * PARAMS: username, email, password, firstName, lastName, role
      */
     public User createUser(String username, String email, String password,
                           String firstName, String lastName, UserRole role) {
-        if (username == null || username.trim().isEmpty() ||
-            email == null || email.trim().isEmpty() ||
-            password == null || password.trim().isEmpty() ||
-            firstName == null || firstName.trim().isEmpty() ||
-            lastName == null || lastName.trim().isEmpty() ||
-            role == null) {
-            return null;
+        // Check for existing username/email
+        if (searchService.isUsernameTaken(username)) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+        if (searchService.isEmailTaken(email)) {
+            throw new IllegalArgumentException("Email already exists");
         }
         
-        if (usersByUsername.containsKey(username) || usersByEmail.containsKey(email)) {
-            return null;
-        }
+        // Use factory to create user
+        User user = UserFactory.createUser(username, email, password, firstName, lastName, role);
         
-        User user = null;
-        switch (role) {
-            case ADMIN:
-                user = new Admin(username, email, password, firstName, lastName, "SYSTEM_ADMIN");
-                break;
-            case ORGANIZER:
-                user = new Organizer(username, email, password, firstName, lastName, "General");
-                break;
-            case ATTENDEE:
-                user = new Attendee(username, email, password, firstName, lastName);
-                break;
-            default:
-                return null;
-        }
-        
-        users.put(user.getUserId(), user);
-        usersByEmail.put(email, user);
-        usersByUsername.put(username, user);
-        // TODO: Save to persistence layer
-        // TODO: Log user creation
+        // Use repository pattern to persist
+        create(user);
         return user;
     }
     
@@ -90,24 +158,15 @@ public class UserManager {
      * PARAMS: userId
      */
     public User getUserById(String userId) {
-        return users.get(userId);
+        return findById(userId);
     }
     
     /**
-     * Validates user credentials for login
+     * Validates user credentials for login using authentication service
      * PARAMS: username, password
      */
     public User validateCredentials(String username, String password) {
-        User user = usersByUsername.get(username);
-        if (user == null) {
-            return null;
-        }
-        
-        if (user.login(username, password)) {
-            return user;
-        }
-        
-        return null;
+        return authService.validateCredentials(username, password);
     }
     
     /**
@@ -159,7 +218,7 @@ public class UserManager {
      * Retrieves all users in the system
      */
     public List<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+        return findAll();
     }
     
     /**
@@ -181,11 +240,9 @@ public class UserManager {
      * PARAMS: userId
      */
     public boolean deleteUser(String userId) {
-        User user = users.get(userId);
+        User user = findById(userId);
         if (user != null) {
-            users.remove(userId);
-            usersByEmail.remove(user.getEmail());
-            usersByUsername.remove(user.getUsername());
+            deleteById(userId);
             return true;
         }
         return false;
@@ -205,5 +262,59 @@ public class UserManager {
      */
     public boolean isEmailAvailable(String email) {
         return !usersByEmail.containsKey(email);
+    }
+    
+    /**
+     * Loads users from persistence layer on startup
+     */
+    @SuppressWarnings("unchecked")
+    private void loadUsersFromPersistence() {
+        try {
+            Object data = DataManager.loadData("users.ser");
+            if (data instanceof Map) {
+                Map<String, User> loadedUsers = (Map<String, User>) data;
+                for (User user : loadedUsers.values()) {
+                    users.put(user.getUserId(), user);
+                    usersByEmail.put(user.getEmail(), user);
+                    usersByUsername.put(user.getUsername(), user);
+                }
+                System.out.println("Loaded " + loadedUsers.size() + " users from persistence");
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("No existing user data found or failed to load: " + e.getMessage());
+            // This is normal on first run
+        }
+    }
+    
+    /**
+     * Saves users to persistence layer
+     */
+    private void saveUsersToPersistence() {
+        try {
+            DataManager.saveData("users.ser", new ConcurrentHashMap<>(users));
+        } catch (IOException e) {
+            System.err.println("Failed to save users to persistence: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Gets users pending approval using status service
+     */
+    public List<User> getPendingApprovals() {
+        return statusService.getPendingApprovals();
+    }
+    
+    /**
+     * Approves a user using status service
+     */
+    public boolean approveUser(String userId) {
+        return statusService.approveUser(userId);
+    }
+    
+    /**
+     * Suspends a user account using status service
+     */
+    public boolean suspendUser(String userId) {
+        return statusService.suspendUser(userId);
     }
 }

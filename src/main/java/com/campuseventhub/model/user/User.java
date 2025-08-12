@@ -4,8 +4,12 @@
 
 package com.campuseventhub.model.user;
 
+import com.campuseventhub.util.ValidationUtil;
 import java.time.LocalDateTime;
 import java.io.Serializable;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Abstract base class for all user types in the system.
@@ -35,12 +39,29 @@ public abstract class User implements Serializable {
      */
     protected User(String username, String email, String password, 
                    String firstName, String lastName) {
+        // Validate all inputs
+        if (!ValidationUtil.isValidUsername(username)) {
+            throw new IllegalArgumentException("Invalid username: " + username);
+        }
+        if (!ValidationUtil.isValidEmail(email)) {
+            throw new IllegalArgumentException("Invalid email: " + email);
+        }
+        if (!ValidationUtil.isValidPassword(password)) {
+            throw new IllegalArgumentException("Invalid password: password must be at least 8 characters with letters and numbers");
+        }
+        if (!ValidationUtil.isValidName(firstName)) {
+            throw new IllegalArgumentException("Invalid first name: " + firstName);
+        }
+        if (!ValidationUtil.isValidName(lastName)) {
+            throw new IllegalArgumentException("Invalid last name: " + lastName);
+        }
+        
         this.userId = java.util.UUID.randomUUID().toString();
-        this.username = username;
-        this.email = email;
-        this.password = password; // Simple password storage for project, maybe change to secure hash algo later (Bcrypt)
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.username = username.trim();
+        this.email = email.trim().toLowerCase();
+        this.password = hashPassword(password); // Hash the password
+        this.firstName = firstName.trim();
+        this.lastName = lastName.trim();
         this.status = UserStatus.ACTIVE;
         this.createdAt = LocalDateTime.now();
     }
@@ -50,7 +71,7 @@ public abstract class User implements Serializable {
      * PARAMS: username, password
      */
     public boolean login(String username, String password) {
-        if (this.username.equals(username) && this.password.equals(password)) {
+        if (this.username.equals(username) && verifyPassword(password)) {
             if (status == UserStatus.ACTIVE) {
                 this.lastLoginAt = LocalDateTime.now();
                 return true;
@@ -71,15 +92,60 @@ public abstract class User implements Serializable {
      * PARAMS: firstName, lastName, email
      */
     public void updateProfile(String firstName, String lastName, String email) {
-        if (firstName != null && !firstName.trim().isEmpty()) {
-            this.firstName = firstName;
+        if (firstName != null && ValidationUtil.isValidName(firstName)) {
+            this.firstName = firstName.trim();
         }
-        if (lastName != null && !lastName.trim().isEmpty()) {
-            this.lastName = lastName;
+        if (lastName != null && ValidationUtil.isValidName(lastName)) {
+            this.lastName = lastName.trim();
         }
-        if (email != null && !email.trim().isEmpty()) {
-            this.email = email;
+        if (email != null && ValidationUtil.isValidEmail(email)) {
+            this.email = email.trim().toLowerCase();
         }
+    }
+    
+    /**
+     * Hashes a password using SHA-256 with salt
+     */
+    private String hashPassword(String password) {
+        try {
+            // Add a simple salt (in production, use unique salt per user)
+            String saltedPassword = password + this.username + "campuseventhub_salt";
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(saltedPassword.getBytes(StandardCharsets.UTF_8));
+            
+            // Convert to hex string
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
+    }
+    
+    /**
+     * Verifies a plain text password against the stored hash
+     */
+    private boolean verifyPassword(String password) {
+        if (password == null) {
+            return false;
+        }
+        return this.password.equals(hashPassword(password));
+    }
+    
+    /**
+     * Updates user password with validation and hashing
+     */
+    public void changePassword(String newPassword) {
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+            throw new IllegalArgumentException("Invalid password: password must be at least 8 characters with letters and numbers");
+        }
+        this.password = hashPassword(newPassword);
     }
     
     /**

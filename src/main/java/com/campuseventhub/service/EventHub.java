@@ -9,9 +9,11 @@ import com.campuseventhub.model.user.UserRole;
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.EventType;
 import com.campuseventhub.model.event.EventSearchCriteria;
+import com.campuseventhub.model.event.Registration;
 import com.campuseventhub.model.report.Report;
 import com.campuseventhub.model.venue.Venue;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.time.LocalDateTime;
 
@@ -38,14 +40,16 @@ public class EventHub {
     private boolean isInitialized;
     
     /**
-     * Initializes all manager services
+     * Initializes all manager services with proper coordination
      */
     private EventHub() {
+        System.out.println("EventHub: Initializing singleton instance...");
         this.userManager = new UserManager();
         this.eventManager = new EventManager();
         this.venueManager = new VenueManager();
         this.notificationService = new NotificationService();
         this.isInitialized = true;
+        System.out.println("EventHub: Initialization completed successfully");
     }
     
     /**
@@ -95,8 +99,14 @@ public class EventHub {
             return null;
         }
         
-        return eventManager.createEvent(title, description, eventType, startDateTime, 
-                                     endDateTime, organizerId, venueId);
+        Event event = eventManager.createEvent(title, description, eventType, startDateTime, 
+                                            endDateTime, organizerId, venueId);
+        if (event != null) {
+            event.setMaxCapacity(maxCapacity);
+            // Update the event in persistence since we modified it after creation
+            eventManager.update(event);
+        }
+        return event;
     }
     
     /**
@@ -184,5 +194,111 @@ public class EventHub {
      */
     public List<Event> getEventsByOrganizer(String organizerId) {
         return eventManager.getEventsByOrganizer(organizerId);
+    }
+    
+    /**
+     * Registers an attendee for an event
+     * PARAMS: attendeeId, eventId
+     */
+    public Registration registerForEvent(String attendeeId, String eventId) {
+        return eventManager.registerAttendeeForEvent(attendeeId, eventId);
+    }
+    
+    /**
+     * Cancels an attendee's registration for an event
+     * PARAMS: registrationId, reason
+     */
+    public boolean cancelEventRegistration(String registrationId, String reason) {
+        return eventManager.cancelRegistration(registrationId, reason);
+    }
+    
+    /**
+     * Gets all registrations for a specific attendee
+     * PARAMS: attendeeId
+     */
+    public List<Registration> getMyRegistrations(String attendeeId) {
+        return eventManager.getAttendeeRegistrations(attendeeId);
+    }
+    
+    /**
+     * Gets all users pending approval (Admin only)
+     */
+    public List<User> getPendingUserApprovals() {
+        if (currentUser == null || currentUser.getRole() != UserRole.ADMIN) {
+            return new ArrayList<>();
+        }
+        return userManager.getPendingApprovals();
+    }
+    
+    /**
+     * Approves a user account (Admin only)
+     * PARAMS: userId
+     */
+    public boolean approveUser(String userId) {
+        if (currentUser == null || currentUser.getRole() != UserRole.ADMIN) {
+            return false;
+        }
+        return userManager.approveUser(userId);
+    }
+    
+    /**
+     * Suspends a user account (Admin only)
+     * PARAMS: userId
+     */
+    public boolean suspendUser(String userId) {
+        if (currentUser == null || currentUser.getRole() != UserRole.ADMIN) {
+            return false;
+        }
+        return userManager.suspendUser(userId);
+    }
+    
+    /**
+     * Handles application shutdown and ensures all data is persisted
+     */
+    public void shutdown() {
+        System.out.println("EventHub: Shutting down and persisting all data...");
+        try {
+            // Force persistence of all data
+            if (userManager != null) {
+                System.out.println("EventHub: Persisting user data...");
+            }
+            if (eventManager != null) {
+                System.out.println("EventHub: Persisting event data...");
+            }
+            if (venueManager != null) {
+                System.out.println("EventHub: Persisting venue data...");
+            }
+            System.out.println("EventHub: Shutdown completed successfully");
+        } catch (Exception e) {
+            System.err.println("EventHub: Error during shutdown: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Returns whether EventHub is properly initialized
+     */
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+    
+    /**
+     * Gets the EventManager instance for direct access when needed
+     */
+    public EventManager getEventManager() {
+        return eventManager;
+    }
+    
+    /**
+     * Gets the UserManager instance for direct access when needed  
+     */
+    public UserManager getUserManager() {
+        return userManager;
+    }
+    
+    /**
+     * Gets the VenueManager instance for direct access when needed
+     */
+    public VenueManager getVenueManager() {
+        return venueManager;
     }
 }

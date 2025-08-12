@@ -19,15 +19,12 @@ import com.campuseventhub.gui.organizer.OrganizerDashboard;
 import com.campuseventhub.gui.attendee.AttendeeDashboard;
 
 /**
- * Login window for user authentication.
+ * Simplified login window using composition of specialized services.
  * 
  * Implementation Details:
- * - Secure password handling
- * - Input validation and error display
- * - Remember username functionality
- * - Role-based dashboard routing
- * - Professional UI design
- * - Keyboard shortcuts support
+ * - Delegates UI construction to LoginFormBuilder
+ * - Delegates authentication to LoginController
+ * - Delegates navigation to DashboardNavigationService
  */
 public class LoginFrame extends JFrame {
     private JTextField usernameField;
@@ -37,6 +34,11 @@ public class LoginFrame extends JFrame {
     private JLabel statusLabel;
     private JCheckBox rememberUsernameCheckbox;
     
+    // Specialized services
+    private LoginController loginController;
+    private DashboardNavigationService navigationService;
+    private LoginFormBuilder formBuilder;
+    
     public LoginFrame() {
         setTitle("Campus EventHub - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -44,177 +46,44 @@ public class LoginFrame extends JFrame {
         setLocationRelativeTo(null); // Center on screen
         
         initializeComponents();
-        layoutComponents();
         setupEventHandlers();
     }
     
     private void initializeComponents() {
-        usernameField = new JTextField(20);
-        passwordField = new JPasswordField(20);
-        loginButton = new JButton("Login");
-        registerButton = new JButton("Register");
-        statusLabel = new JLabel("Welcome to Campus EventHub");
-        rememberUsernameCheckbox = new JCheckBox("Remember Username");
-    }
-    
-    private void layoutComponents() {
-        setLayout(new java.awt.GridBagLayout());
-        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        // Use form builder to create and layout components
+        formBuilder = new LoginFormBuilder()
+            .createComponents()
+            .applyLayout(this);
         
-        // Title
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        add(new JLabel("Campus EventHub"), gbc);
+        // Get references to components
+        usernameField = formBuilder.getUsernameField();
+        passwordField = formBuilder.getPasswordField();
+        loginButton = formBuilder.getLoginButton();
+        registerButton = formBuilder.getRegisterButton();
+        statusLabel = formBuilder.getStatusLabel();
+        rememberUsernameCheckbox = formBuilder.getRememberUsernameCheckbox();
         
-        // Username
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.anchor = java.awt.GridBagConstraints.EAST;
-        add(new JLabel("Username:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.anchor = java.awt.GridBagConstraints.WEST;
-        add(usernameField, gbc);
-        
-        // Password
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.anchor = java.awt.GridBagConstraints.EAST;
-        add(new JLabel("Password:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.anchor = java.awt.GridBagConstraints.WEST;
-        add(passwordField, gbc);
-        
-        // "Remember' checkbox
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        add(rememberUsernameCheckbox, gbc);
-        
-        // Buttons
-        gbc.gridy = 4;
-        gbc.gridwidth = 1;
-        gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        add(loginButton, gbc);
-        
-        gbc.gridx = 1;
-        add(registerButton, gbc);
-        
-        // Status label
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        gbc.gridwidth = 2;
-        gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        add(statusLabel, gbc);
+        // Initialize specialized services
+        loginController = new LoginController(statusLabel, passwordField);
+        navigationService = new DashboardNavigationService(statusLabel, this);
     }
     
     private void setupEventHandlers() {
         loginButton.addActionListener(e -> performLogin());
-        registerButton.addActionListener(e -> statusLabel.setText("Register functionality not implemented yet"));
+        registerButton.addActionListener(e -> navigationService.openRegistrationFrame());
         
         // Handle Enter key in password field
         passwordField.addActionListener(e -> performLogin());
     }
     
     private void performLogin() {
-        String username = usernameField.getText();
+        String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
         
-        if (username.isEmpty() || password.isEmpty()) {
-            statusLabel.setText("Please enter both username and password");
-            return;
-        }
-        
-        // Simple demo login logic implementation ->> in real app this would call EventHub authentication
-        if (username.equals("admin") && password.equals("admin")) {
-            statusLabel.setText("Login successful! Opening admin dashboard...");
-            openAdminDashboard();
-        } else if (username.equals("organizer") && password.equals("organizer")) {
-            statusLabel.setText("Login successful! Opening organizer dashboard...");
-            openOrganizerDashboard();
-        } else if (username.equals("attendee") && password.equals("attendee")) {
-            statusLabel.setText("Login successful! Opening attendee dashboard...");
-            openAttendeeDashboard();
-        } else {
-            statusLabel.setText("Invalid username or password");
-            passwordField.setText("");
+        User authenticatedUser = loginController.performLogin(username, password);
+        if (authenticatedUser != null) {
+            navigationService.openDashboardForUser(authenticatedUser);
         }
     }
-    
-    private void openAdminDashboard() {
-        try {
-            // Create temporary admin user and register with EventHub
-            EventHub eventHub = EventHub.getInstance();
-            
-            // Try to register user (will fail silently if already exists)
-            eventHub.registerUser("admin", "admin@test.com", "admin", "Admin", "User", UserRole.ADMIN);
-            
-            // Authenticate the user
-            User authenticatedUser = eventHub.authenticateUser("admin", "admin");
-            if (authenticatedUser != null && authenticatedUser instanceof Admin) {
-                AdminDashboard dashboard = new AdminDashboard((Admin) authenticatedUser);
-                dashboard.setVisible(true);
-                this.dispose(); // Close login window
-            } else {
-                statusLabel.setText("Failed to authenticate admin user");
-            }
-        } catch (Exception e) {
-            statusLabel.setText("Error opening admin dashboard: " + e.getMessage());
-        }
-    }
-    
-    private void openOrganizerDashboard() {
-        try {
-            // Create temporary organizer user and register with EventHub
-            EventHub eventHub = EventHub.getInstance();
-            
-            // Try to register user (will fail silently if already exists)
-            eventHub.registerUser("organizer", "organizer@test.com", "organizer", "Test", "Organizer", UserRole.ORGANIZER);
-            
-            // Authenticate the user
-            User authenticatedUser = eventHub.authenticateUser("organizer", "organizer");
-            if (authenticatedUser != null && authenticatedUser instanceof Organizer) {
-                OrganizerDashboard dashboard = new OrganizerDashboard((Organizer) authenticatedUser);
-                dashboard.setVisible(true);
-                this.dispose(); // Close login window
-            } else {
-                statusLabel.setText("Failed to authenticate organizer user");
-            }
-        } catch (Exception e) {
-            statusLabel.setText("Error opening organizer dashboard: " + e.getMessage());
-        }
-    }
-    
-    private void openAttendeeDashboard() {
-        try {
-            // Create temporary attendee user and register with EventHub
-            EventHub eventHub = EventHub.getInstance();
-            
-            // Try to register user (will fail silently if already exists)
-            eventHub.registerUser("attendee", "attendee@test.com", "attendee", "Test", "Student", UserRole.ATTENDEE);
-            
-            // Authenticate the user
-            User authenticatedUser = eventHub.authenticateUser("attendee", "attendee");
-            if (authenticatedUser != null && authenticatedUser instanceof Attendee) {
-                AttendeeDashboard dashboard = new AttendeeDashboard((Attendee) authenticatedUser);
-                dashboard.setVisible(true);
-                this.dispose(); // Close login window
-            } else {
-                statusLabel.setText("Failed to authenticate attendee user");
-            }
-        } catch (Exception e) {
-            statusLabel.setText("Error opening attendee dashboard: " + e.getMessage());
-        }
-    }
-    
-    // TODO: Add utility methods
-    // private boolean validateInputs()
-    // private void showError(String message)
-    // private void clearFields()
-    // private void loadRememberedUsername()
+
 }
