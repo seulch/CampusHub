@@ -84,11 +84,12 @@ public class Event implements Serializable {
         
         Registration registration = new Registration(attendeeId, this.eventId);
         
-        if (registrations.size() < maxCapacity) {
+        if (getConfirmedRegistrationCount() < maxCapacity) {
             registration.confirmRegistration();
             registrations.add(registration);
         } else {
             registration.setWaitlistPosition(waitlist.size() + 1);
+            registration.setStatus(RegistrationStatus.WAITLISTED);
             waitlist.offer(registration);
         }
         
@@ -139,14 +140,27 @@ public class Event implements Serializable {
      * Checks if event has available capacity for new registrations
      */
     public boolean hasCapacity() {
-        return registrations.size() < maxCapacity;
+        return getConfirmedRegistrationCount() < maxCapacity;
     }
     
     /**
      * Calculates the number of available spots for registration
      */
     public int getAvailableSpots() {
-        return Math.max(0, maxCapacity - registrations.size());
+        return Math.max(0, maxCapacity - getConfirmedRegistrationCount());
+    }
+    
+    /**
+     * Gets the count of confirmed registrations (excludes waitlisted)
+     */
+    private int getConfirmedRegistrationCount() {
+        int count = 0;
+        for (Registration reg : registrations) {
+            if (reg.getStatus() == RegistrationStatus.CONFIRMED) {
+                count++;
+            }
+        }
+        return count;
     }
     
     /**
@@ -163,11 +177,14 @@ public class Event implements Serializable {
     
     /**
      * Promotes the next person from waitlist to confirmed registration
+     * @deprecated Use WaitlistManager.promoteFromWaitlist() for comprehensive waitlist management
      */
+    @Deprecated
     private void promoteFromWaitlist() {
         if (!waitlist.isEmpty() && hasCapacity()) {
             Registration promoted = waitlist.poll();
             promoted.confirmRegistration();
+            promoted.setWaitlistPosition(0); // Clear waitlist position
             registrations.add(promoted);
             
             // Update waitlist positions
@@ -176,6 +193,45 @@ public class Event implements Serializable {
                 reg.setWaitlistPosition(position++);
             }
         }
+    }
+    
+    /**
+     * Gets the number of people currently on the waitlist
+     */
+    public int getWaitlistSize() {
+        return waitlist != null ? waitlist.size() : 0;
+    }
+    
+    /**
+     * Checks if an attendee is on the waitlist
+     */
+    public boolean isOnWaitlist(String attendeeId) {
+        if (waitlist == null || attendeeId == null) {
+            return false;
+        }
+        
+        for (Registration reg : waitlist) {
+            if (reg.getAttendeeId().equals(attendeeId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Gets waitlist position for a specific attendee
+     */
+    public int getWaitlistPosition(String attendeeId) {
+        if (waitlist == null || attendeeId == null) {
+            return -1;
+        }
+        
+        for (Registration reg : waitlist) {
+            if (reg.getAttendeeId().equals(attendeeId)) {
+                return reg.getWaitlistPosition();
+            }
+        }
+        return -1;
     }
     
     // Getters and setters
@@ -210,4 +266,58 @@ public class Event implements Serializable {
     public void setTargetAudience(String targetAudience) { this.targetAudience = targetAudience; }
     public void setPrerequisites(List<String> prerequisites) { this.prerequisites = prerequisites; }
     public void setLastModified(LocalDateTime lastModified) { this.lastModified = lastModified; }
+    public void setWaitlist(Queue<Registration> waitlist) { this.waitlist = waitlist; }
+    
+    /**
+     * Venue-related convenience methods
+     */
+    public boolean hasVenue() {
+        return venue != null;
+    }
+    
+    public String getVenueId() {
+        return venue != null ? venue.getVenueId() : null;
+    }
+    
+    public String getVenueName() {
+        return venue != null ? venue.getName() : "No venue assigned";
+    }
+    
+    public String getVenueLocation() {
+        return venue != null ? venue.getLocation() : "No location";
+    }
+    
+    public int getVenueCapacity() {
+        return venue != null ? venue.getCapacity() : 0;
+    }
+    
+    /**
+     * Checks if event capacity is compatible with venue capacity
+     */
+    public boolean isCapacityCompatibleWithVenue() {
+        if (venue == null) {
+            return true; // No venue constraint
+        }
+        return maxCapacity <= venue.getCapacity();
+    }
+    
+    /**
+     * Gets available spots considering venue capacity
+     */
+    public int getAvailableSpotsWithVenue() {
+        int effectiveCapacity = venue != null ? Math.min(maxCapacity, venue.getCapacity()) : maxCapacity;
+        return Math.max(0, effectiveCapacity - getConfirmedRegistrationsCount());
+    }
+    
+    /**
+     * Gets count of confirmed registrations
+     */
+    private int getConfirmedRegistrationsCount() {
+        if (registrations == null) {
+            return 0;
+        }
+        return (int) registrations.stream()
+            .filter(reg -> reg.getStatus() == RegistrationStatus.CONFIRMED)
+            .count();
+    }
 }

@@ -1,6 +1,7 @@
 package com.campuseventhub.gui.organizer;
 
 import com.campuseventhub.gui.common.BaseFrame;
+import com.campuseventhub.gui.common.ProfileEditingPanel;
 import com.campuseventhub.model.user.Organizer;
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +12,7 @@ public class OrganizerDashboard extends BaseFrame {
     private OrganizerEventListPanel eventListPanel;
     private OrganizerEventCreationPanel eventCreationPanel;
     private OrganizerAnalyticsPanel analyticsPanel;
+    private ProfileEditingPanel profilePanel;
     private OrganizerActionHandler actionHandler;
     
     public OrganizerDashboard(Organizer organizer) {
@@ -30,12 +32,14 @@ public class OrganizerDashboard extends BaseFrame {
         mainTabbedPane = new JTabbedPane();
         
         eventListPanel = new OrganizerEventListPanel(eventHub, organizer.getUserId());
-        eventCreationPanel = new OrganizerEventCreationPanel();
+        eventCreationPanel = new OrganizerEventCreationPanel(eventHub);
         analyticsPanel = new OrganizerAnalyticsPanel(eventHub, organizer.getUserId());
+        profilePanel = new ProfileEditingPanel(eventHub);
         
         mainTabbedPane.addTab("My Events", eventListPanel);
         mainTabbedPane.addTab("Create Event", eventCreationPanel);
         mainTabbedPane.addTab("Analytics", analyticsPanel);
+        mainTabbedPane.addTab("My Profile", profilePanel);
         
         add(mainTabbedPane, BorderLayout.CENTER);
     }
@@ -44,14 +48,26 @@ public class OrganizerDashboard extends BaseFrame {
         eventListPanel.setOnViewEvent(e -> 
             actionHandler.viewEventDetails(eventListPanel.getSelectedEvent()));
         
-        eventListPanel.setOnEditEvent(e -> 
-            actionHandler.editEvent(eventListPanel.getSelectedEvent()));
+        eventListPanel.setOnEditEvent(e -> {
+            actionHandler.editEvent(eventListPanel.getSelectedEventObject());
+            eventListPanel.loadMyEvents(); // Refresh the list after editing
+        });
         
         eventListPanel.setOnPublishEvent(e -> {
             if (actionHandler.publishEvent(eventListPanel.getSelectedEvent())) {
                 eventListPanel.loadMyEvents();
                 analyticsPanel.updateAnalytics();
             }
+        });
+        
+        eventListPanel.setOnCancelEvent(e -> {
+            actionHandler.cancelEvent(eventListPanel.getSelectedEventObject());
+            eventListPanel.loadMyEvents(); // Refresh the list after cancellation
+        });
+        
+        eventListPanel.setOnRescheduleEvent(e -> {
+            actionHandler.rescheduleEvent(eventListPanel.getSelectedEventObject());
+            eventListPanel.loadMyEvents(); // Refresh the list after rescheduling
         });
         
         eventCreationPanel.setOnCreateEvent(e -> {
@@ -61,7 +77,8 @@ public class OrganizerDashboard extends BaseFrame {
                 eventCreationPanel.getEventType(),
                 eventCreationPanel.getCapacity(),
                 eventCreationPanel.getStartDate(),
-                eventCreationPanel.getEndDate()
+                eventCreationPanel.getEndDate(),
+                eventCreationPanel.getSelectedVenueId()
             )) {
                 eventCreationPanel.clearForm();
                 eventListPanel.loadMyEvents();

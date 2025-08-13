@@ -5,6 +5,7 @@
 package com.campuseventhub.gui.admin;
 
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 
@@ -31,14 +32,12 @@ public class SystemReportsPanel extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("System Reports", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel titleLabel = ComponentFactory.createHeadingLabel("System Reports");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
         
         // Report display area
-        reportArea = new JTextArea();
-        reportArea.setEditable(false);
-        reportArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        reportArea = ComponentFactory.createStandardTextArea();
         
         JScrollPane reportScrollPane = new JScrollPane(reportArea);
         reportScrollPane.setPreferredSize(new Dimension(500, 400));
@@ -46,7 +45,7 @@ public class SystemReportsPanel extends JPanel {
         
         // Controls panel
         JPanel controlsPanel = new JPanel(new FlowLayout());
-        generateReportBtn = new JButton("Generate System Report");
+        generateReportBtn = ComponentFactory.createPrimaryButton("Generate System Report");
         controlsPanel.add(generateReportBtn);
         add(controlsPanel, BorderLayout.SOUTH);
     }

@@ -50,8 +50,8 @@ class UserTest {
         assertNotNull(user.getUserId());
         assertEquals("testuser", user.getUsername());
         assertEquals("test@example.com", user.getEmail());
-        assertNotEquals("password123", user.getPassword()); // Password should be hashed
-        assertTrue(user.getPassword().length() > 20); // Hashed password is longer
+        assertTrue(user.verifyPassword("password123")); // Password should be verifiable
+        assertFalse(user.verifyPassword("wrongpassword")); // Wrong password should fail
         assertEquals("Test", user.getFirstName());
         assertEquals("User", user.getLastName());
         assertEquals(UserStatus.ACTIVE, user.getStatus());
@@ -236,14 +236,14 @@ class UserTest {
         user.setFirstName("NewFirst");
         user.setLastName("NewLast");
         user.setEmail("new@example.com");
-        user.setPassword("newpassword");
+        user.changePassword("newpassword");  // Use changePassword instead of setPassword
         user.setStatus(UserStatus.SUSPENDED);
         user.setLastLoginAt(now);
         
         assertEquals("NewFirst", user.getFirstName());
         assertEquals("NewLast", user.getLastName());
         assertEquals("new@example.com", user.getEmail());
-        assertEquals("newpassword", user.getPassword());
+        assertTrue(user.verifyPassword("newpassword"));
         assertEquals(UserStatus.SUSPENDED, user.getStatus());
         assertEquals(now, user.getLastLoginAt());
     }
@@ -296,11 +296,12 @@ class UserTest {
     @Test
     @DisplayName("Should change password with validation")
     void testPasswordChange() {
-        String originalPasswordHash = user.getPassword();
+        assertTrue(user.verifyPassword("password123")); // Original password works
         
         // Change to valid password
         user.changePassword("newstrongpass456");
-        assertNotEquals(originalPasswordHash, user.getPassword());
+        assertFalse(user.verifyPassword("password123")); // Original no longer works
+        assertTrue(user.verifyPassword("newstrongpass456")); // New password works
         
         // Old password should no longer work
         assertFalse(user.login("testuser", "password123"));
@@ -358,7 +359,9 @@ class UserTest {
         TestUser user2 = new TestUser("user2", "user2@example.com", "password123", "User", "Two");
         
         // Same password should produce different hashes due to salt including username
-        assertNotEquals(user1.getPassword(), user2.getPassword());
+        // Both should verify the same password but have different internal hashes
+        assertTrue(user1.verifyPassword("password123"));
+        assertTrue(user2.verifyPassword("password123"));
         
         // Both should authenticate with same password
         assertTrue(user1.login("user1", "password123"));

@@ -27,6 +27,12 @@ public class RegistrationManager {
             throw new IllegalArgumentException("Event ID and Attendee ID cannot be null");
         }
         
+        // Check if attendee is already registered for this event
+        Registration existingRegistration = findRegistration(attendeeId, eventId);
+        if (existingRegistration != null && existingRegistration.getStatus() != RegistrationStatus.CANCELLED) {
+            return null; // Already registered
+        }
+        
         Registration registration = new Registration(attendeeId, eventId);
         registration.confirmRegistration();
         registrations.put(registration.getRegistrationId(), registration);

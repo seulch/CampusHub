@@ -26,8 +26,7 @@ public class AdminOverviewPanel extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel welcomeLabel = new JLabel("Welcome, " + admin.getFirstName() + " " + admin.getLastName(), SwingConstants.CENTER);
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        JLabel welcomeLabel = ComponentFactory.createLargeTitleLabel("Welcome, " + admin.getFirstName() + " " + admin.getLastName());
         add(welcomeLabel, BorderLayout.NORTH);
         
         JPanel contentPanel = new JPanel(new GridLayout(2, 2, 10, 10));
@@ -58,9 +57,9 @@ public class AdminOverviewPanel extends JPanel {
         JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Quick Actions"));
         
-        JButton addVenueBtn = new JButton("Add New Venue");
-        JButton viewUsersBtn = new JButton("View All Users");
-        JButton systemReportBtn = new JButton("Generate System Report");
+        JButton addVenueBtn = ComponentFactory.createStandardButton("Add New Venue");
+        JButton viewUsersBtn = ComponentFactory.createStandardButton("View All Users");
+        JButton systemReportBtn = ComponentFactory.createStandardButton("Generate System Report");
         
         addVenueBtn.addActionListener(e -> showAddVenueDialog());
         viewUsersBtn.addActionListener(e -> mainTabbedPane.setSelectedIndex(1));
@@ -77,8 +76,8 @@ public class AdminOverviewPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Recent Activity"));
         
-        JTextArea activityArea = new JTextArea("• System started\n• Admin logged in\n• Dashboard loaded");
-        activityArea.setEditable(false);
+        JTextArea activityArea = ComponentFactory.createStandardTextArea();
+        activityArea.setText("• System started\n• Admin logged in\n• Dashboard loaded");
         activityArea.setBackground(getBackground());
         
         panel.add(new JScrollPane(activityArea), BorderLayout.CENTER);

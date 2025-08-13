@@ -22,8 +22,8 @@ public class AdminVenueManagementPanel extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("Venue Management", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel titleLabel = ComponentFactory.createHeadingLabel("Venue Management");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
         
         JList<String> venuesList = new JList<>(venuesListModel);
@@ -33,8 +33,8 @@ public class AdminVenueManagementPanel extends JPanel {
         venuesScrollPane.setPreferredSize(new Dimension(400, 300));
         
         JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton addVenueBtn = new JButton("Add Venue");
-        JButton refreshVenuesBtn = new JButton("Refresh");
+        JButton addVenueBtn = ComponentFactory.createPrimaryButton("Add Venue");
+        JButton refreshVenuesBtn = ComponentFactory.createStandardButton("Refresh");
         
         addVenueBtn.addActionListener(e -> showAddVenueDialog());
         refreshVenuesBtn.addActionListener(e -> loadVenuesData());

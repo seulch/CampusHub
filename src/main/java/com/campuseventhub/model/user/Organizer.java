@@ -5,7 +5,6 @@
 package com.campuseventhub.model.user;
 
 import com.campuseventhub.model.event.Event;
-import com.campuseventhub.model.report.Report;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -69,14 +68,8 @@ public class Organizer extends User {
         return false;
     }
     
-    public Report getEventAnalytics(String eventId) {
-        // TODO: Verify event ownership
-        // TODO: Collect registration data, attendance data
-        // TODO: Calculate metrics (attendance rate, demographics, etc.)
-        // TODO: Generate EventReport instance
-        // TODO: Return comprehensive analytics report
-        return null;
-    }
+    // Event analytics method removed - Report classes were stubs
+    // Analytics functionality can be implemented directly in EventHub if needed
     
     public void sendNotification(String message, List<String> recipients) {
         // TODO: Validate message content and recipients

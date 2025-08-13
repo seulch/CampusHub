@@ -10,7 +10,6 @@ import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.EventType;
 import com.campuseventhub.model.event.EventSearchCriteria;
 import com.campuseventhub.model.event.Registration;
-import com.campuseventhub.model.report.Report;
 import com.campuseventhub.model.venue.Venue;
 import java.util.List;
 import java.util.ArrayList;
@@ -35,6 +34,7 @@ public class EventHub {
     private UserManager userManager;
     private EventManager eventManager;
     private VenueManager venueManager;
+    private VenueBookingService venueBookingService;
     private NotificationService notificationService;
     private User currentUser;
     private boolean isInitialized;
@@ -47,7 +47,18 @@ public class EventHub {
         this.userManager = new UserManager();
         this.eventManager = new EventManager();
         this.venueManager = new VenueManager();
+        this.venueBookingService = new VenueBookingService(venueManager);
         this.notificationService = new NotificationService();
+        
+        // Inject venue booking service into event manager
+        this.eventManager.setVenueBookingService(venueBookingService);
+        
+        // Inject notification service into event manager for waitlist notifications
+        this.eventManager.setNotificationService(notificationService);
+        
+        // Start deadline monitoring
+        this.eventManager.startDeadlineMonitoring();
+        
         this.isInitialized = true;
         System.out.println("EventHub: Initialization completed successfully");
     }
@@ -99,14 +110,8 @@ public class EventHub {
             return null;
         }
         
-        Event event = eventManager.createEvent(title, description, eventType, startDateTime, 
-                                            endDateTime, organizerId, venueId);
-        if (event != null) {
-            event.setMaxCapacity(maxCapacity);
-            // Update the event in persistence since we modified it after creation
-            eventManager.update(event);
-        }
-        return event;
+        return eventManager.createEvent(title, description, eventType, startDateTime, 
+                                      endDateTime, organizerId, venueId, maxCapacity);
     }
     
     /**
@@ -221,6 +226,62 @@ public class EventHub {
     }
     
     /**
+     * Gets all registrations for a specific attendee (alias for getMyRegistrations)
+     * PARAMS: attendeeId
+     */
+    public List<Registration> getRegistrationsByAttendee(String attendeeId) {
+        return getMyRegistrations(attendeeId);
+    }
+    
+    /**
+     * Gets an event by its ID
+     * PARAMS: eventId
+     */
+    public Event getEventById(String eventId) {
+        return eventManager.findById(eventId);
+    }
+    
+    /**
+     * Gets available venues for a specific time slot and capacity
+     * PARAMS: startTime, endTime, minCapacity
+     */
+    public List<Venue> getAvailableVenues(LocalDateTime startTime, LocalDateTime endTime, int minCapacity) {
+        return eventManager.getAvailableVenues(startTime, endTime, minCapacity);
+    }
+    
+    /**
+     * Changes venue for an existing event (Organizer or Admin only)
+     * PARAMS: eventId, newVenueId
+     */
+    public boolean changeEventVenue(String eventId, String newVenueId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        return eventManager.changeEventVenue(eventId, newVenueId);
+    }
+    
+    /**
+     * Cancels venue booking for an event (Organizer or Admin only)
+     * PARAMS: eventId
+     */
+    public boolean cancelEventVenueBooking(String eventId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        return eventManager.cancelEventVenueBooking(eventId);
+    }
+    
+    /**
+     * Gets venue conflicts for an event
+     * PARAMS: eventId
+     */
+    public List<String> getEventVenueConflicts(String eventId) {
+        return eventManager.getEventVenueConflicts(eventId);
+    }
+    
+    /**
      * Gets all users pending approval (Admin only)
      */
     public List<User> getPendingUserApprovals() {
@@ -300,5 +361,311 @@ public class EventHub {
      */
     public VenueManager getVenueManager() {
         return venueManager;
+    }
+    
+    /**
+     * Cancels an event and notifies all attendees (Organizer or Admin only)
+     * PARAMS: eventId, reason
+     */
+    public boolean cancelEvent(String eventId, String reason) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        
+        try {
+            return eventManager.cancelEvent(eventId, reason, notificationService);
+        } catch (Exception e) {
+            System.err.println("Failed to cancel event: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Reschedules an event to new times and notifies attendees (Organizer or Admin only)
+     * PARAMS: eventId, newStartTime, newEndTime, reason
+     */
+    public boolean rescheduleEvent(String eventId, LocalDateTime newStartTime, LocalDateTime newEndTime, String reason) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        
+        try {
+            return eventManager.rescheduleEvent(eventId, newStartTime, newEndTime, reason, notificationService);
+        } catch (Exception e) {
+            System.err.println("Failed to reschedule event: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Checks if an event can be cancelled (Organizer or Admin only)
+     * PARAMS: eventId
+     */
+    public boolean canCancelEvent(String eventId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        
+        return eventManager.canCancelEvent(eventId);
+    }
+    
+    /**
+     * Checks if an event can be rescheduled (Organizer or Admin only)  
+     * PARAMS: eventId
+     */
+    public boolean canRescheduleEvent(String eventId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        
+        return eventManager.canRescheduleEvent(eventId);
+    }
+    
+    // =============================================================================
+    // WAITLIST MANAGEMENT METHODS
+    // =============================================================================
+    
+    /**
+     * Gets waitlist statistics for an event
+     * PARAMS: eventId
+     */
+    public WaitlistManager.WaitlistStatistics getWaitlistStatistics(String eventId) {
+        return eventManager.getWaitlistStatistics(eventId);
+    }
+    
+    /**
+     * Gets the waitlist position for the current user
+     * PARAMS: eventId
+     */
+    public int getWaitlistPosition(String eventId) {
+        if (currentUser == null) {
+            return -1;
+        }
+        return eventManager.getWaitlistPosition(eventId, currentUser.getUserId());
+    }
+    
+    /**
+     * Gets the waitlist position for a specific attendee (Organizer or Admin only)
+     * PARAMS: eventId, attendeeId
+     */
+    public int getWaitlistPosition(String eventId, String attendeeId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return -1;
+        }
+        return eventManager.getWaitlistPosition(eventId, attendeeId);
+    }
+    
+    /**
+     * Checks if the current user is on the waitlist for an event
+     * PARAMS: eventId
+     */
+    public boolean isOnWaitlist(String eventId) {
+        if (currentUser == null) {
+            return false;
+        }
+        return eventManager.isOnWaitlist(eventId, currentUser.getUserId());
+    }
+    
+    /**
+     * Checks if a specific attendee is on the waitlist (Organizer or Admin only)
+     * PARAMS: eventId, attendeeId
+     */
+    public boolean isOnWaitlist(String eventId, String attendeeId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        return eventManager.isOnWaitlist(eventId, attendeeId);
+    }
+    
+    /**
+     * Manually promotes attendees from waitlist (Organizer or Admin only)
+     * PARAMS: eventId, numberOfPromotions
+     */
+    public WaitlistManager.WaitlistPromotionResult promoteFromWaitlist(String eventId, int numberOfPromotions) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return new WaitlistManager.WaitlistPromotionResult(0, new ArrayList<>(), new ArrayList<>());
+        }
+        return eventManager.promoteFromWaitlist(eventId, numberOfPromotions);
+    }
+    
+    // =============================================================================
+    // REGISTRATION DEADLINE MANAGEMENT
+    // =============================================================================
+    
+    /**
+     * Sets a registration deadline for an event (Organizer or Admin only)
+     * PARAMS: eventId, deadline
+     */
+    public boolean setRegistrationDeadline(String eventId, LocalDateTime deadline) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        return eventManager.setRegistrationDeadline(eventId, deadline);
+    }
+    
+    /**
+     * Extends the registration deadline for an event (Organizer or Admin only)
+     * PARAMS: eventId, newDeadline, reason
+     */
+    public boolean extendRegistrationDeadline(String eventId, LocalDateTime newDeadline, String reason) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        return eventManager.extendRegistrationDeadline(eventId, newDeadline, reason);
+    }
+    
+    /**
+     * Removes the registration deadline from an event (Organizer or Admin only)
+     * PARAMS: eventId
+     */
+    public boolean removeRegistrationDeadline(String eventId) {
+        if (currentUser == null || 
+            (currentUser.getRole() != UserRole.ORGANIZER && currentUser.getRole() != UserRole.ADMIN)) {
+            return false;
+        }
+        return eventManager.removeRegistrationDeadline(eventId);
+    }
+    
+    /**
+     * Gets registration deadline statistics (Admin only)
+     */
+    public RegistrationDeadlineManager.RegistrationDeadlineStatistics getDeadlineStatistics() {
+        if (currentUser == null || currentUser.getRole() != UserRole.ADMIN) {
+            return new RegistrationDeadlineManager.RegistrationDeadlineStatistics(0, 0, 0, 0);
+        }
+        return eventManager.getDeadlineStatistics();
+    }
+    
+    /**
+     * Manually processes deadlines for a specific event (Admin only)
+     * PARAMS: eventId
+     */
+    public void processEventDeadlineImmediately(String eventId) {
+        if (currentUser == null || currentUser.getRole() != UserRole.ADMIN) {
+            return;
+        }
+        eventManager.processEventDeadlineImmediately(eventId);
+    }
+    
+    /**
+     * Stops the deadline monitoring service (for shutdown)
+     */
+    public void shutdownServices() {
+        if (eventManager != null) {
+            eventManager.stopDeadlineMonitoring();
+        }
+        System.out.println("EventHub: Services shutdown completed");
+    }
+    
+    // =============================================================================
+    // USER PROFILE MANAGEMENT
+    // =============================================================================
+    
+    /**
+     * Updates the current user's profile information
+     * PARAMS: firstName, lastName, email
+     */
+    public boolean updateCurrentUserProfile(String firstName, String lastName, String email) {
+        if (currentUser == null) {
+            return false;
+        }
+        
+        try {
+            // Validate inputs
+            if (firstName != null && !firstName.trim().isEmpty()) {
+                if (!com.campuseventhub.util.ValidationUtil.isValidName(firstName)) {
+                    throw new IllegalArgumentException("Invalid first name");
+                }
+            }
+            if (lastName != null && !lastName.trim().isEmpty()) {
+                if (!com.campuseventhub.util.ValidationUtil.isValidName(lastName)) {
+                    throw new IllegalArgumentException("Invalid last name");
+                }
+            }
+            if (email != null && !email.trim().isEmpty()) {
+                if (!com.campuseventhub.util.ValidationUtil.isValidEmail(email)) {
+                    throw new IllegalArgumentException("Invalid email format");
+                }
+            }
+            
+            // Update the current user object
+            currentUser.updateProfile(firstName, lastName, email);
+            
+            // Update in UserManager
+            java.util.Map<String, Object> updates = new java.util.HashMap<>();
+            if (firstName != null && !firstName.trim().isEmpty()) {
+                updates.put("firstName", firstName.trim());
+            }
+            if (lastName != null && !lastName.trim().isEmpty()) {
+                updates.put("lastName", lastName.trim());
+            }
+            if (email != null && !email.trim().isEmpty()) {
+                updates.put("email", email.trim().toLowerCase());
+            }
+            
+            return userManager.updateUser(currentUser.getUserId(), updates);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to update profile: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Changes the current user's password
+     * PARAMS: currentPassword, newPassword
+     */
+    public boolean changeCurrentUserPassword(String currentPassword, String newPassword) {
+        if (currentUser == null) {
+            return false;
+        }
+        
+        try {
+            // Verify current password
+            if (!currentUser.login(currentUser.getUsername(), currentPassword)) {
+                return false; // Current password is incorrect
+            }
+            
+            // Change password
+            currentUser.changePassword(newPassword);
+            
+            // Update in UserManager (password is already updated in the user object)
+            userManager.update(currentUser);
+            
+            return true;
+            
+        } catch (Exception e) {
+            System.err.println("Failed to change password: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Gets the current user's profile information
+     */
+    public java.util.Map<String, String> getCurrentUserProfile() {
+        if (currentUser == null) {
+            return new java.util.HashMap<>();
+        }
+        
+        java.util.Map<String, String> profile = new java.util.HashMap<>();
+        profile.put("userId", currentUser.getUserId());
+        profile.put("username", currentUser.getUsername());
+        profile.put("firstName", currentUser.getFirstName());
+        profile.put("lastName", currentUser.getLastName());
+        profile.put("email", currentUser.getEmail());
+        profile.put("role", currentUser.getRole().toString());
+        profile.put("status", currentUser.getStatus().toString());
+        
+        return profile;
     }
 }

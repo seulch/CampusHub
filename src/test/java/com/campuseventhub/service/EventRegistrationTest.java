@@ -59,7 +59,7 @@ public class EventRegistrationTest {
         
         Event event = eventManager.createEvent("Test Workshop", "A test workshop", 
                                              EventType.WORKSHOP, startTime, endTime, 
-                                             organizerId, venueId);
+                                             organizerId, venueId, 30);
         
         assertNotNull(event);
         assertEquals("Test Workshop", event.getTitle());
@@ -75,19 +75,19 @@ public class EventRegistrationTest {
         // Invalid title
         assertThrows(IllegalArgumentException.class, () -> {
             eventManager.createEvent("Test", "Description", EventType.WORKSHOP, 
-                                   startTime, endTime, organizerId, venueId);
+                                   startTime, endTime, organizerId, venueId, 30);
         });
         
         // Invalid duration (too short)
         assertThrows(IllegalArgumentException.class, () -> {
             eventManager.createEvent("Valid Title", "Description", EventType.WORKSHOP, 
-                                   startTime, startTime.plusMinutes(5), organizerId, venueId);
+                                   startTime, startTime.plusMinutes(5), organizerId, venueId, 30);
         });
         
         // Invalid organizer
         assertThrows(IllegalArgumentException.class, () -> {
             eventManager.createEvent("Valid Title", "Description", EventType.WORKSHOP, 
-                                   startTime, endTime, "", venueId);
+                                   startTime, endTime, "", venueId, 30);
         });
     }
     
@@ -99,7 +99,7 @@ public class EventRegistrationTest {
         // Create first event
         Event event1 = eventManager.createEvent("First Event", "First event description", 
                                                EventType.WORKSHOP, startTime, endTime, 
-                                               organizerId, venueId);
+                                               organizerId, venueId, 30);
         
         // Create non-overlapping event with same organizer
         LocalDateTime laterStart = endTime.plusMinutes(30);
@@ -107,7 +107,7 @@ public class EventRegistrationTest {
         
         Event event2 = eventManager.createEvent("Second Event", "Second event description", 
                                                EventType.SEMINAR, laterStart, laterEnd, 
-                                               organizerId, venueId);
+                                               organizerId, venueId, 30);
         
         assertNotNull(event1);
         assertNotNull(event2);
@@ -121,7 +121,7 @@ public class EventRegistrationTest {
         // Create first event
         eventManager.createEvent("First Event", "First event description", 
                                 EventType.WORKSHOP, startTime, endTime, 
-                                organizerId, venueId);
+                                organizerId, venueId, 30);
         
         // Try to create overlapping event with same organizer
         LocalDateTime overlappingStart = startTime.plusMinutes(30);
@@ -130,7 +130,7 @@ public class EventRegistrationTest {
         assertThrows(IllegalArgumentException.class, () -> {
             eventManager.createEvent("Second Event", "Second event description", 
                                    EventType.SEMINAR, overlappingStart, overlappingEnd, 
-                                   organizerId, venueId);
+                                   organizerId, venueId, 30);
         });
     }
     
@@ -141,7 +141,7 @@ public class EventRegistrationTest {
         
         Event event = eventManager.createEvent("Test Workshop", "A test workshop", 
                                              EventType.WORKSHOP, startTime, endTime, 
-                                             organizerId, venueId);
+                                             organizerId, venueId, 30);
         event.setMaxCapacity(10);
         
         Registration registration = eventManager.registerAttendeeForEvent(attendeeId1, event.getEventId());
@@ -164,7 +164,7 @@ public class EventRegistrationTest {
         
         Event event = eventManager.createEvent("Test Workshop", "A test workshop", 
                                              EventType.WORKSHOP, startTime, endTime, 
-                                             organizerId, venueId);
+                                             organizerId, venueId, 30);
         event.setMaxCapacity(1); // Very small capacity for testing
         
         // First registration should be confirmed
@@ -190,7 +190,7 @@ public class EventRegistrationTest {
         
         Event event = eventManager.createEvent("Test Workshop", "A test workshop", 
                                              EventType.WORKSHOP, startTime, endTime, 
-                                             organizerId, venueId);
+                                             organizerId, venueId, 30);
         event.setMaxCapacity(1);
         
         // Register two attendees (second goes to waitlist)
@@ -221,7 +221,7 @@ public class EventRegistrationTest {
         
         Event event = eventManager.createEvent("Test Workshop", "A test workshop", 
                                              EventType.WORKSHOP, startTime, endTime, 
-                                             organizerId, venueId);
+                                             organizerId, venueId, 30);
         
         // First registration should succeed
         Registration reg1 = eventManager.registerAttendeeForEvent(attendeeId1, event.getEventId());
@@ -247,7 +247,7 @@ public class EventRegistrationTest {
         
         Event event = eventManager.createEvent("Test Workshop", "A test workshop", 
                                              EventType.WORKSHOP, startTime, endTime, 
-                                             organizerId, venueId);
+                                             organizerId, venueId, 30);
         
         Registration reg1 = eventManager.registerAttendeeForEvent(attendeeId1, event.getEventId());
         Registration reg2 = eventManager.registerAttendeeForEvent(attendeeId2, event.getEventId());
@@ -279,11 +279,11 @@ public class EventRegistrationTest {
         // Both events should be created successfully
         Event event1 = eventManager.createEvent("First Event", "First event description", 
                                                EventType.WORKSHOP, startTime1, endTime1, 
-                                               organizerId, venueId);
+                                               organizerId, venueId, 30);
         
         Event event2 = eventManager.createEvent("Second Event", "Second event description", 
                                                EventType.SEMINAR, startTime2, endTime2, 
-                                               organizerId, venueId);
+                                               organizerId, venueId, 30);
         
         assertNotNull(event1);
         assertNotNull(event2);

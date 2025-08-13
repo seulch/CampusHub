@@ -23,7 +23,7 @@ public class OrganizerActionHandler {
     }
     
     public boolean createEvent(String title, String description, EventType type, 
-                              String capacityStr, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+                              String capacityStr, LocalDateTime startDateTime, LocalDateTime endDateTime, String venueId) {
         try {
             // Validate event title
             String titleError = ValidationUtil.validateEventTitle(title);
@@ -69,7 +69,7 @@ public class OrganizerActionHandler {
             // All validation passed, create the event
             int capacity = Integer.parseInt(capacityStr.trim());
             Event event = eventHub.createEvent(title, description, type, startDateTime, 
-                endDateTime, organizer.getUserId(), null, capacity);
+                endDateTime, organizer.getUserId(), venueId, capacity);
             
             if (event != null) {
                 event.setMaxCapacity(capacity);
@@ -111,9 +111,80 @@ public class OrganizerActionHandler {
         }
     }
     
-    public void editEvent(String selectedEvent) {
-        if (selectedEvent != null && !selectedEvent.contains("No events found")) {
-            JOptionPane.showMessageDialog(parentFrame, "Event editing feature coming soon!");
+    public void editEvent(Event selectedEvent) {
+        if (selectedEvent != null) {
+            EventEditingDialog dialog = new EventEditingDialog(parentFrame, eventHub, selectedEvent);
+            boolean changesSaved = dialog.showDialog();
+            
+            if (changesSaved) {
+                // Refresh the event list to show updated information
+                // This will be handled by the dashboard's event list panel
+                JOptionPane.showMessageDialog(parentFrame, 
+                    "Event updated successfully!", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(parentFrame, 
+                "Please select an event to edit.", 
+                "No Event Selected", 
+                JOptionPane.WARNING_MESSAGE);
+        }
+    }
+    
+    public void cancelEvent(Event selectedEvent) {
+        if (selectedEvent != null) {
+            // Check if event can be cancelled
+            if (!eventHub.canCancelEvent(selectedEvent.getEventId())) {
+                JOptionPane.showMessageDialog(parentFrame,
+                    "This event cannot be cancelled. It may have already started, been completed, or already cancelled.",
+                    "Cannot Cancel Event",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            EventCancellationDialog dialog = new EventCancellationDialog(parentFrame, eventHub, selectedEvent);
+            boolean wasCancelled = dialog.showDialog();
+            
+            if (wasCancelled) {
+                JOptionPane.showMessageDialog(parentFrame,
+                    "Event has been successfully cancelled. All registered attendees have been notified.",
+                    "Event Cancelled",
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(parentFrame,
+                "Please select an event to cancel.",
+                "No Event Selected",
+                JOptionPane.WARNING_MESSAGE);
+        }
+    }
+    
+    public void rescheduleEvent(Event selectedEvent) {
+        if (selectedEvent != null) {
+            // Check if event can be rescheduled
+            if (!eventHub.canRescheduleEvent(selectedEvent.getEventId())) {
+                JOptionPane.showMessageDialog(parentFrame,
+                    "This event cannot be rescheduled. It may have already started, been completed, or been cancelled.",
+                    "Cannot Reschedule Event",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            EventReschedulingDialog dialog = new EventReschedulingDialog(parentFrame, eventHub, selectedEvent);
+            boolean wasRescheduled = dialog.showDialog();
+            
+            if (wasRescheduled) {
+                JOptionPane.showMessageDialog(parentFrame,
+                    "Event has been successfully rescheduled. All registered attendees have been notified.",
+                    "Event Rescheduled",
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(parentFrame,
+                "Please select an event to reschedule.",
+                "No Event Selected",
+                JOptionPane.WARNING_MESSAGE);
         }
     }
     

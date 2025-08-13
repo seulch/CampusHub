@@ -3,6 +3,7 @@ package com.campuseventhub.gui.attendee;
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.Registration;
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -27,8 +28,8 @@ public class AttendeeRegistrationPanel extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("My Event Registrations", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel titleLabel = ComponentFactory.createHeadingLabel("My Event Registrations");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
         
         registrationsList = new JList<>(registrationsListModel);

@@ -6,12 +6,14 @@ package com.campuseventhub.service;
 
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.Registration;
+import com.campuseventhub.model.event.RegistrationStatus;
 import com.campuseventhub.model.user.User;
 import com.campuseventhub.util.DateTimeUtil;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Service for validating event schedules and detecting conflicts.
@@ -27,10 +29,15 @@ public class ScheduleValidator {
     
     private Map<String, List<Event>> venueSchedules;
     private Map<String, List<Event>> organizerSchedules;
+    private Function<String, Event> eventLookup;
     
     public ScheduleValidator() {
         this.venueSchedules = new java.util.concurrent.ConcurrentHashMap<>();
         this.organizerSchedules = new java.util.concurrent.ConcurrentHashMap<>();
+    }
+    
+    public void setEventLookup(Function<String, Event> eventLookup) {
+        this.eventLookup = eventLookup;
     }
     
     /**
@@ -86,14 +93,11 @@ public class ScheduleValidator {
     public List<String> detectConflicts(Event event, String excludeEventId) {
         List<String> conflicts = new ArrayList<>();
         
-        // For now, we'll only check organizer conflicts since Event model doesn't expose venueId
-        // In a complete implementation, we'd also check venue conflicts
+        // Note: Organizers can manage multiple simultaneous events in different venues
+        // Scheduling conflicts should only apply to attendees, not organizers
+        // Venue conflicts are handled separately by the VenueBookingService
         
-        // Check organizer conflicts
-        if (!isOrganizerAvailable(event.getOrganizerId(), event.getStartDateTime(), 
-                                event.getEndDateTime(), excludeEventId)) {
-            conflicts.add("Organizer conflict: Already has another event scheduled at this time");
-        }
+        // Future: Add attendee conflict checking when implementing registration conflicts
         
         return conflicts;
     }
@@ -150,12 +154,28 @@ public class ScheduleValidator {
     public boolean hasAttendeeConflict(String attendeeId, LocalDateTime startTime, LocalDateTime endTime, 
                                      List<Registration> attendeeRegistrations, String excludeEventId) {
         for (Registration registration : attendeeRegistrations) {
+            // Skip cancelled registrations
+            if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+                continue;
+            }
+            
+            // Skip the event being registered for (when checking updates)
             if (excludeEventId != null && registration.getEventId().equals(excludeEventId)) {
                 continue;
             }
             
-            // This would need access to event details - simplified for now
-            // In real implementation, would check against actual event times
+            // Get the event details for this registration
+            if (eventLookup != null) {
+                Event registeredEvent = eventLookup.apply(registration.getEventId());
+                if (registeredEvent != null) {
+                    // Check for time overlap
+                    if (DateTimeUtil.hasTimeConflict(startTime, endTime, 
+                                                   registeredEvent.getStartDateTime(), 
+                                                   registeredEvent.getEndDateTime())) {
+                        return true; // Conflict found
+                    }
+                }
+            }
         }
         return false;
     }

@@ -18,6 +18,7 @@ import java.util.Properties;
  */
 public class ApplicationConfig {
     private static ApplicationConfig instance;
+    private static final Object lock = new Object();
     private Properties properties;
     
     private ApplicationConfig() {
@@ -28,8 +29,14 @@ public class ApplicationConfig {
     }
     
     public static ApplicationConfig getInstance() {
-        // TODO: Thread-safe singleton implementation
-        return null;
+        if (instance == null) {
+            synchronized (lock) {
+                if (instance == null) {
+                    instance = new ApplicationConfig();
+                }
+            }
+        }
+        return instance;
     }
     
     // TODO: Add getters for various config values

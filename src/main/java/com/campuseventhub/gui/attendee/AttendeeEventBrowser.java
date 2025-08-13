@@ -3,6 +3,7 @@ package com.campuseventhub.gui.attendee;
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.EventType;
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -27,8 +28,8 @@ public class AttendeeEventBrowser extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("Browse Available Events", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel titleLabel = ComponentFactory.createHeadingLabel("Browse Available Events");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
         
         JPanel searchPanel = new JPanel(new FlowLayout());
@@ -99,11 +100,13 @@ public class AttendeeEventBrowser extends JPanel {
         } else {
             for (Event event : events) {
                 if (event.isRegistrationOpen()) {
-                    String eventInfo = String.format("%s - %s (%s) - %s - Available: %d/%d", 
+                    String venueInfo = event.hasVenue() ? event.getVenueName() : "No venue assigned";
+                    String eventInfo = String.format("%s - %s (%s) - %s - Venue: %s - Available: %d/%d", 
                         event.getTitle(),
                         event.getEventType().getDisplayName(),
                         event.getStatus().getDisplayName(),
                         event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                        venueInfo,
                         event.getAvailableSpots(),
                         event.getMaxCapacity()
                     );
@@ -125,11 +128,13 @@ public class AttendeeEventBrowser extends JPanel {
         } else {
             for (Event event : events) {
                 if (event.isRegistrationOpen()) {
-                    String eventInfo = String.format("%s - %s (%s) - %s - Available: %d/%d", 
+                    String venueInfo = event.hasVenue() ? event.getVenueName() : "No venue assigned";
+                    String eventInfo = String.format("%s - %s (%s) - %s - Venue: %s - Available: %d/%d", 
                         event.getTitle(),
                         event.getEventType().getDisplayName(),
                         event.getStatus().getDisplayName(),
                         event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                        venueInfo,
                         event.getAvailableSpots(),
                         event.getMaxCapacity()
                     );

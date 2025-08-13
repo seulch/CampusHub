@@ -131,7 +131,7 @@ public abstract class User implements Serializable {
     /**
      * Verifies a plain text password against the stored hash
      */
-    private boolean verifyPassword(String password) {
+    public boolean verifyPassword(String password) {
         if (password == null) {
             return false;
         }
@@ -163,17 +163,36 @@ public abstract class User implements Serializable {
     public String getUserId() { return userId; }
     public String getUsername() { return username; }
     public String getEmail() { return email; }
-    public String getPassword() { return password; }
+    // Password getter removed for security - use verifyPassword() instead
     public String getFirstName() { return firstName; }
     public String getLastName() { return lastName; }
     public UserStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-    public void setEmail(String email) { this.email = email; }
-    public void setPassword(String password) { this.password = password; }
+    public void setFirstName(String firstName) { 
+        if (!ValidationUtil.isValidName(firstName)) {
+            throw new IllegalArgumentException("Invalid first name: " + firstName);
+        }
+        this.firstName = firstName.trim(); 
+    }
+    
+    public void setLastName(String lastName) { 
+        if (!ValidationUtil.isValidName(lastName)) {
+            throw new IllegalArgumentException("Invalid last name: " + lastName);
+        }
+        this.lastName = lastName.trim(); 
+    }
+    
+    public void setEmail(String email) { 
+        if (!ValidationUtil.isValidEmail(email)) {
+            throw new IllegalArgumentException("Invalid email: " + email);
+        }
+        this.email = email.trim().toLowerCase(); 
+    }
+    
+    // Removed setPassword() - use changePassword() instead for security
+    
     public void setStatus(UserStatus status) { this.status = status; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     

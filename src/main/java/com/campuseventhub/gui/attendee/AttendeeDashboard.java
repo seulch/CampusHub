@@ -1,6 +1,7 @@
 package com.campuseventhub.gui.attendee;
 
 import com.campuseventhub.gui.common.BaseFrame;
+import com.campuseventhub.gui.common.ProfileEditingPanel;
 import com.campuseventhub.model.user.Attendee;
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +12,7 @@ public class AttendeeDashboard extends BaseFrame {
     private AttendeeEventBrowser eventBrowser;
     private AttendeeRegistrationPanel registrationPanel;
     private AttendeeSchedulePanel schedulePanel;
+    private ProfileEditingPanel profilePanel;
     private AttendeeActionHandler actionHandler;
     
     public AttendeeDashboard(Attendee attendee) {
@@ -32,10 +34,12 @@ public class AttendeeDashboard extends BaseFrame {
         eventBrowser = new AttendeeEventBrowser(eventHub);
         registrationPanel = new AttendeeRegistrationPanel(eventHub, attendee.getUserId());
         schedulePanel = new AttendeeSchedulePanel(eventHub, attendee);
+        profilePanel = new ProfileEditingPanel(eventHub);
         
         mainTabbedPane.addTab("Browse Events", eventBrowser);
         mainTabbedPane.addTab("My Registrations", registrationPanel);
         mainTabbedPane.addTab("My Schedule", schedulePanel);
+        mainTabbedPane.addTab("My Profile", profilePanel);
         
         add(mainTabbedPane, BorderLayout.CENTER);
     }

@@ -1,6 +1,7 @@
 package com.campuseventhub.gui.admin;
 
 import com.campuseventhub.gui.common.BaseFrame;
+import com.campuseventhub.gui.common.ProfileEditingPanel;
 import com.campuseventhub.model.user.Admin;
 import javax.swing.*;
 import java.awt.*;
@@ -12,6 +13,7 @@ public class AdminDashboard extends BaseFrame {
     private AdminUserManagementPanel userManagementPanel;
     private AdminVenueManagementPanel venueManagementPanel;
     private AdminSystemStatsPanel systemStatsPanel;
+    private ProfileEditingPanel profilePanel;
     private AdminActionHandler actionHandler;
     
     public AdminDashboard(Admin admin) {
@@ -34,11 +36,13 @@ public class AdminDashboard extends BaseFrame {
         overviewPanel = new AdminOverviewPanel(eventHub, admin, this, mainTabbedPane, systemStatsPanel);
         userManagementPanel = new AdminUserManagementPanel(eventHub);
         venueManagementPanel = new AdminVenueManagementPanel(eventHub, this);
+        profilePanel = new ProfileEditingPanel(eventHub);
         
         mainTabbedPane.addTab("Overview", overviewPanel);
         mainTabbedPane.addTab("User Management", userManagementPanel);
         mainTabbedPane.addTab("Venue Management", venueManagementPanel);
         mainTabbedPane.addTab("System Stats", systemStatsPanel);
+        mainTabbedPane.addTab("My Profile", profilePanel);
         
         add(mainTabbedPane, BorderLayout.CENTER);
     }

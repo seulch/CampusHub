@@ -31,7 +31,7 @@ public class Venue implements Serializable {
     private String roomNumber;
     private int capacity;
     private List<String> equipment; // Projector, Microphone, etc.
-    private Map<LocalDateTime, String> bookings; // DateTime -> EventId
+    private Map<String, VenueBooking> bookings; // EventId -> VenueBooking
     private List<String> features; // WiFi, AC, Accessible, etc.
     private int setupTimeMinutes;
     private int cleanupTimeMinutes;
@@ -55,10 +55,13 @@ public class Venue implements Serializable {
             return false;
         }
         
+        // Include setup and cleanup time in the check
+        LocalDateTime requestedStart = startTime.minusMinutes(setupTimeMinutes);
+        LocalDateTime requestedEnd = endTime.plusMinutes(cleanupTimeMinutes);
+        
         // Check for overlapping bookings
-        for (Map.Entry<LocalDateTime, String> booking : bookings.entrySet()) {
-            LocalDateTime bookingTime = booking.getKey();
-            if (startTime.isBefore(bookingTime) && endTime.isAfter(bookingTime)) {
+        for (VenueBooking booking : bookings.values()) {
+            if (booking.conflictsWith(requestedStart, requestedEnd)) {
                 return false;
             }
         }
@@ -71,12 +74,13 @@ public class Venue implements Serializable {
             return false;
         }
         
-        bookings.put(startTime, eventId);
+        VenueBooking booking = new VenueBooking(eventId, startTime, endTime, setupTimeMinutes, cleanupTimeMinutes);
+        bookings.put(eventId, booking);
         return true;
     }
     
     public boolean cancelBooking(String eventId) {
-        return bookings.values().remove(eventId);
+        return bookings.remove(eventId) != null;
     }
     
     // Getters and setters
@@ -88,7 +92,7 @@ public class Venue implements Serializable {
     public String getRoomNumber() { return roomNumber; }
     public int getCapacity() { return capacity; }
     public List<String> getEquipment() { return equipment; }
-    public Map<LocalDateTime, String> getBookings() { return bookings; }
+    public Map<String, VenueBooking> getBookings() { return bookings; }
     public List<String> getFeatures() { return features; }
     public int getSetupTimeMinutes() { return setupTimeMinutes; }
     public int getCleanupTimeMinutes() { return cleanupTimeMinutes; }

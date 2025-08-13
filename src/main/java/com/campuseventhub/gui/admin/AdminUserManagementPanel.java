@@ -2,6 +2,7 @@ package com.campuseventhub.gui.admin;
 
 import com.campuseventhub.model.user.User;
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -24,8 +25,8 @@ public class AdminUserManagementPanel extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("User Management", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel titleLabel = ComponentFactory.createHeadingLabel("User Management");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
         
         usersList = new JList<>(usersListModel);
@@ -35,11 +36,11 @@ public class AdminUserManagementPanel extends JPanel {
         usersScrollPane.setPreferredSize(new Dimension(600, 400));
         
         JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton refreshUsersBtn = new JButton("Refresh");
-        JButton viewUserBtn = new JButton("View User");
-        JButton pendingApprovalsBtn = new JButton("Pending Approvals");
-        JButton approveUserBtn = new JButton("Approve User");
-        JButton suspendUserBtn = new JButton("Suspend User");
+        JButton refreshUsersBtn = ComponentFactory.createStandardButton("Refresh");
+        JButton viewUserBtn = ComponentFactory.createStandardButton("View User");
+        JButton pendingApprovalsBtn = ComponentFactory.createStandardButton("Pending Approvals");
+        JButton approveUserBtn = ComponentFactory.createPrimaryButton("Approve User");
+        JButton suspendUserBtn = ComponentFactory.createStandardButton("Suspend User");
         
         refreshUsersBtn.addActionListener(e -> loadUsersData());
         viewUserBtn.addActionListener(e -> {

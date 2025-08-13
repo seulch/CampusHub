@@ -1,6 +1,7 @@
 package com.campuseventhub.gui.admin;
 
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 
@@ -16,18 +17,16 @@ public class AdminSystemStatsPanel extends JPanel {
     private void initializeComponents() {
         setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("System Statistics", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        JLabel titleLabel = ComponentFactory.createHeadingLabel("System Statistics");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel, BorderLayout.NORTH);
         
-        statsArea = new JTextArea();
-        statsArea.setEditable(false);
-        statsArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        statsArea = ComponentFactory.createStandardTextArea();
         
         JScrollPane statsScrollPane = new JScrollPane(statsArea);
         add(statsScrollPane, BorderLayout.CENTER);
         
-        JButton refreshBtn = new JButton("Refresh Stats");
+        JButton refreshBtn = ComponentFactory.createStandardButton("Refresh Stats");
         refreshBtn.addActionListener(e -> updateSystemStats());
         add(refreshBtn, BorderLayout.SOUTH);
         

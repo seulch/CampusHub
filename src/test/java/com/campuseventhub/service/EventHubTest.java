@@ -369,7 +369,7 @@ class EventHubTest {
         
         Event event = eventHub.createEvent("Test Workshop", "A comprehensive test workshop", 
                                           EventType.WORKSHOP, startTime, endTime, 
-                                          organizer.getUserId(), "TEST_VENUE", 50);
+                                          organizer.getUserId(), null, 50);
         
         assertNotNull(event);
         assertEquals("Test Workshop", event.getTitle());

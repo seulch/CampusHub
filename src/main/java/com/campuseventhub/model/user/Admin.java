@@ -5,7 +5,6 @@
 package com.campuseventhub.model.user;
 
 import com.campuseventhub.model.venue.Venue;
-import com.campuseventhub.model.report.Report;
 import java.util.List;
 import java.util.Map;
 
@@ -81,14 +80,8 @@ public class Admin extends User {
         return null;
     }
     
-    public Report generateSystemReport(String reportType) {
-        // TODO: Validate report type and admin permissions
-        // TODO: Collect system-wide data based on report type
-        // TODO: Generate appropriate report (SystemReport, UserReport, etc.)
-        // TODO: Log report generation
-        // TODO: Return comprehensive system report
-        return null;
-    }
+    // System report method removed - Report classes were stubs
+    // Report functionality is implemented in AdminSystemStatsPanel and SystemReportsPanel
     
     public Map<String, Object> getUserActivity() {
         // TODO: Collect user login statistics

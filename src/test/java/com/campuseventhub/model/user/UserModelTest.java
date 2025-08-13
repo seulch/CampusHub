@@ -24,7 +24,7 @@ public class UserModelTest {
         assertNotNull(attendee.getCreatedAt());
         
         // Password should be hashed
-        assertNotEquals("password123", attendee.getPassword());
+        assertTrue(attendee.verifyPassword("password123"));
     }
     
     @Test
@@ -102,13 +102,14 @@ public class UserModelTest {
         Attendee user = new Attendee("testuser", "test@example.com", "password123", 
                                    "John", "Doe");
         
-        String originalPassword = user.getPassword();
+        assertTrue(user.verifyPassword("password123")); // Original password works
         
         // Change password
         user.changePassword("newpassword456");
         
-        // Password hash should be different
-        assertNotEquals(originalPassword, user.getPassword());
+        // Password should be changed
+        assertFalse(user.verifyPassword("password123")); // Original no longer works
+        assertTrue(user.verifyPassword("newpassword456")); // New password works
         
         // Old password should no longer work
         assertFalse(user.login("testuser", "password123"));

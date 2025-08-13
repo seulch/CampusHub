@@ -11,6 +11,7 @@ import com.campuseventhub.model.event.Conflict;
 import com.campuseventhub.model.event.Registration;
 import com.campuseventhub.model.event.RegistrationStatus;
 import com.campuseventhub.model.event.EventStatus;
+import com.campuseventhub.model.venue.Venue;
 import com.campuseventhub.persistence.EventRepository;
 import com.campuseventhub.persistence.DataManager;
 import com.campuseventhub.util.ValidationUtil;
@@ -39,6 +40,9 @@ public class EventManager implements EventRepository {
     private ScheduleValidator scheduleValidator;
     private RegistrationManager registrationManager;
     private EventSearchService searchService;
+    private VenueBookingService venueBookingService;
+    private WaitlistManager waitlistManager;
+    private RegistrationDeadlineManager deadlineManager;
     
     /**
      * Initializes thread-safe event storage and indexes
@@ -50,7 +54,47 @@ public class EventManager implements EventRepository {
         this.scheduleValidator = new ScheduleValidator();
         this.registrationManager = new RegistrationManager();
         this.searchService = new EventSearchService();
+        this.waitlistManager = new WaitlistManager();
+        this.deadlineManager = new RegistrationDeadlineManager();
+        
+        // Set up event lookup for schedule validator
+        this.scheduleValidator.setEventLookup(this::findById);
+        
         loadDataFromPersistence();
+    }
+    
+    /**
+     * Sets the venue booking service (injected from EventHub)
+     */
+    public void setVenueBookingService(VenueBookingService venueBookingService) {
+        this.venueBookingService = venueBookingService;
+    }
+    
+    /**
+     * Sets the notification service for waitlist notifications and deadline management
+     */
+    public void setNotificationService(NotificationService notificationService) {
+        this.waitlistManager.setNotificationService(notificationService);
+        this.deadlineManager.setNotificationService(notificationService);
+        this.deadlineManager.setEventManager(this);
+    }
+    
+    /**
+     * Starts the registration deadline monitoring service
+     */
+    public void startDeadlineMonitoring() {
+        if (deadlineManager != null) {
+            deadlineManager.startDeadlineMonitoring();
+        }
+    }
+    
+    /**
+     * Stops the registration deadline monitoring service
+     */
+    public void stopDeadlineMonitoring() {
+        if (deadlineManager != null) {
+            deadlineManager.stopDeadlineMonitoring();
+        }
     }
     
     /**
@@ -129,12 +173,12 @@ public class EventManager implements EventRepository {
     }
 
     /**
-     * Creates a new event with validation and indexing
-     * PARAMS: title, description, type, startTime, endTime, organizerId, venueId
+     * Creates a new event with validation, venue booking, and indexing
+     * PARAMS: title, description, type, startTime, endTime, organizerId, venueId, maxCapacity
      */
     public Event createEvent(String title, String description, EventType type,
                            LocalDateTime startTime, LocalDateTime endTime,
-                           String organizerId, String venueId) {
+                           String organizerId, String venueId, int maxCapacity) {
         // Validate inputs
         if (!ValidationUtil.isValidEventTitle(title)) {
             throw new IllegalArgumentException("Invalid event title");
@@ -153,12 +197,27 @@ public class EventManager implements EventRepository {
         }
         
         Event event = new Event(title, description, type, startTime, endTime, organizerId);
-        // Note: For now, we'll track venue ID separately since Event uses Venue object
-        // In a complete implementation, we'd create a Venue object here
+        event.setMaxCapacity(maxCapacity);
         
-        // Check for conflicts
-        List<String> conflicts = scheduleValidator.detectConflicts(event, null);
+        // Handle venue booking if venue is specified
+        if (venueId != null && !venueId.trim().isEmpty() && venueBookingService != null) {
+            try {
+                boolean booked = venueBookingService.bookVenueForEvent(event, venueId);
+                if (!booked) {
+                    throw new IllegalArgumentException("Failed to book venue for the event");
+                }
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Venue booking failed: " + e.getMessage());
+            }
+        }
+        
+        // Check for conflicts after venue is assigned
+        List<String> conflicts = scheduleValidator.detectConflicts(event, venueId);
         if (!conflicts.isEmpty()) {
+            // Cancel venue booking if conflicts found
+            if (event.hasVenue() && venueBookingService != null) {
+                venueBookingService.cancelVenueBooking(event);
+            }
             throw new IllegalArgumentException("Event conflicts detected: " + String.join(", ", conflicts));
         }
         
@@ -169,13 +228,22 @@ public class EventManager implements EventRepository {
     }
     
     /**
+     * Creates a new event with default capacity (for backward compatibility)
+     */
+    public Event createEvent(String title, String description, EventType type,
+                           LocalDateTime startTime, LocalDateTime endTime,
+                           String organizerId, String venueId) {
+        return createEvent(title, description, type, startTime, endTime, organizerId, venueId, 50);
+    }
+    
+    /**
      * Updates event information with provided field updates
      * PARAMS: eventId, updates
      */
     public boolean updateEvent(String eventId, Map<String, Object> updates) {
         Event event = events.get(eventId);
         if (event == null) {
-            return false;
+            throw new IllegalArgumentException("Event not found: " + eventId);
         }
         
         for (Map.Entry<String, Object> entry : updates.entrySet()) {
@@ -195,7 +263,21 @@ public class EventManager implements EventRepository {
                     break;
                 case "maxCapacity":
                     if (value instanceof Integer) {
-                        event.setMaxCapacity((Integer) value);
+                        int oldCapacity = event.getMaxCapacity();
+                        int newCapacity = (Integer) value;
+                        event.setMaxCapacity(newCapacity);
+                        
+                        // Handle automatic waitlist promotion if capacity increased
+                        if (newCapacity > oldCapacity && waitlistManager != null) {
+                            WaitlistManager.WaitlistPromotionResult result = 
+                                waitlistManager.handleCapacityIncrease(event, oldCapacity, newCapacity);
+                            // The waitlist manager handles all notifications
+                        }
+                    }
+                    break;
+                case "eventType":
+                    if (value instanceof EventType) {
+                        event.setEventType((EventType) value);
                     }
                     break;
                 case "status":
@@ -265,11 +347,42 @@ public class EventManager implements EventRepository {
         if (event == null) {
             throw new IllegalArgumentException("Event not found");
         }
+        
+        // Check for attendee scheduling conflicts
+        List<Registration> attendeeRegistrations = registrationManager.getAttendeeRegistrations(attendeeId);
+        if (scheduleValidator.hasAttendeeConflict(attendeeId, event.getStartDateTime(), event.getEndDateTime(), 
+                                                attendeeRegistrations, eventId)) {
+            throw new IllegalArgumentException("Schedule conflict: You are already registered for another event during this time period");
+        }
+        
         return registrationManager.createRegistration(eventId, attendeeId);
     }
     
     public boolean cancelRegistration(String registrationId, String reason) {
-        return registrationManager.cancelRegistration(registrationId);
+        // Find the event for this registration first
+        Event event = null;
+        for (Event e : events.values()) {
+            if (e.getRegistrations() != null) {
+                for (Registration reg : e.getRegistrations()) {
+                    if (reg.getRegistrationId().equals(registrationId)) {
+                        event = e;
+                        break;
+                    }
+                }
+            }
+            if (event != null) break;
+        }
+        
+        boolean cancelled = registrationManager.cancelRegistration(registrationId);
+        
+        // If cancellation successful and event found, handle waitlist promotion
+        if (cancelled && event != null && waitlistManager != null) {
+            WaitlistManager.WaitlistPromotionResult result = 
+                waitlistManager.handleRegistrationCancellation(event);
+            // The waitlist manager handles all notifications
+        }
+        
+        return cancelled;
     }
     
     public int getCurrentRegistrationCount(String eventId) {
@@ -293,6 +406,465 @@ public class EventManager implements EventRepository {
         return registrationManager.getAttendeeRegistrations(attendeeId);
     }
     
+    /**
+     * Gets available venues for a specific time slot and capacity
+     */
+    public List<Venue> getAvailableVenues(LocalDateTime startTime, LocalDateTime endTime, int minCapacity) {
+        if (venueBookingService == null) {
+            return new ArrayList<>();
+        }
+        return venueBookingService.findAvailableVenues(startTime, endTime, minCapacity);
+    }
+    
+    /**
+     * Changes venue for an existing event
+     */
+    public boolean changeEventVenue(String eventId, String newVenueId) {
+        if (venueBookingService == null) {
+            return false;
+        }
+        
+        Event event = events.get(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        boolean success = venueBookingService.changeEventVenue(event, newVenueId);
+        if (success) {
+            event.setLastModified(LocalDateTime.now());
+            saveEventsToPersistence();
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Cancels venue booking for an event
+     */
+    public boolean cancelEventVenueBooking(String eventId) {
+        if (venueBookingService == null) {
+            return false;
+        }
+        
+        Event event = events.get(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        boolean success = venueBookingService.cancelVenueBooking(event);
+        if (success) {
+            event.setLastModified(LocalDateTime.now());
+            saveEventsToPersistence();
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Gets venue conflicts for an event
+     */
+    public List<String> getEventVenueConflicts(String eventId) {
+        Event event = events.get(eventId);
+        if (event == null || !event.hasVenue() || venueBookingService == null) {
+            return new ArrayList<>();
+        }
+        
+        return venueBookingService.getVenueConflicts(
+            event.getVenueId(), 
+            event.getStartDateTime(), 
+            event.getEndDateTime()
+        );
+    }
+    
+    /**
+     * Cancels an event and notifies all registered attendees
+     * PARAMS: eventId, reason, notificationService
+     */
+    public boolean cancelEvent(String eventId, String reason, NotificationService notificationService) {
+        Event event = events.get(eventId);
+        if (event == null) {
+            throw new IllegalArgumentException("Event not found: " + eventId);
+        }
+        
+        // Check if event can be cancelled
+        if (event.getStatus() == EventStatus.CANCELLED) {
+            throw new IllegalStateException("Event is already cancelled");
+        }
+        
+        if (event.getStatus() == EventStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot cancel a completed event");
+        }
+        
+        // Store original status for potential rollback
+        EventStatus originalStatus = event.getStatus();
+        
+        try {
+            // Update event status
+            event.setStatus(EventStatus.CANCELLED);
+            event.setLastModified(LocalDateTime.now());
+            
+            // Cancel venue booking if exists
+            if (event.hasVenue() && venueBookingService != null) {
+                venueBookingService.cancelVenueBooking(event);
+            }
+            
+            // Get all registered attendees for notifications
+            List<String> attendeeIds = new ArrayList<>();
+            if (event.getRegistrations() != null) {
+                attendeeIds = event.getRegistrations().stream()
+                    .map(registration -> registration.getAttendeeId())
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            // Send cancellation notifications
+            if (notificationService != null && !attendeeIds.isEmpty()) {
+                String message = String.format(
+                    "Event '%s' scheduled for %s has been cancelled. Reason: %s",
+                    event.getTitle(),
+                    event.getStartDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    reason != null ? reason : "No reason provided"
+                );
+                
+                notificationService.sendNotification(message, attendeeIds, 
+                    com.campuseventhub.model.notification.NotificationType.EVENT_CANCELLATION);
+            }
+            
+            // Handle waitlist notifications - inform waitlisted users that event is cancelled
+            if (event.getWaitlist() != null && !event.getWaitlist().isEmpty() && notificationService != null) {
+                List<String> waitlistIds = new ArrayList<>();
+                event.getWaitlist().forEach(waitlistEntry -> waitlistIds.add(waitlistEntry.toString()));
+                
+                String waitlistMessage = String.format(
+                    "Event '%s' that you were waitlisted for has been cancelled. Reason: %s",
+                    event.getTitle(),
+                    reason != null ? reason : "No reason provided"
+                );
+                
+                notificationService.sendNotification(waitlistMessage, waitlistIds,
+                    com.campuseventhub.model.notification.NotificationType.EVENT_CANCELLATION);
+            }
+            
+            // Persist changes
+            update(event);
+            
+            return true;
+            
+        } catch (Exception e) {
+            // Rollback on failure
+            event.setStatus(originalStatus);
+            throw new RuntimeException("Failed to cancel event: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Reschedules an event to new dates and notifies attendees
+     * PARAMS: eventId, newStartTime, newEndTime, reason, notificationService
+     */
+    public boolean rescheduleEvent(String eventId, LocalDateTime newStartTime, LocalDateTime newEndTime, 
+                                 String reason, NotificationService notificationService) {
+        Event event = events.get(eventId);
+        if (event == null) {
+            throw new IllegalArgumentException("Event not found: " + eventId);
+        }
+        
+        // Validate new times
+        if (newStartTime == null || newEndTime == null) {
+            throw new IllegalArgumentException("New start and end times cannot be null");
+        }
+        
+        if (!newStartTime.isBefore(newEndTime)) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
+        
+        if (newStartTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Cannot reschedule to a past date");
+        }
+        
+        // Check if event can be rescheduled
+        if (event.getStatus() == EventStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot reschedule a cancelled event");
+        }
+        
+        if (event.getStatus() == EventStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot reschedule a completed event");
+        }
+        
+        // Store original times for potential rollback
+        LocalDateTime originalStart = event.getStartDateTime();
+        LocalDateTime originalEnd = event.getEndDateTime();
+        
+        try {
+            // Check venue availability for new time if event has venue
+            if (event.hasVenue() && venueBookingService != null) {
+                // Cancel current booking
+                venueBookingService.cancelVenueBooking(event);
+                
+                // Try to book new time slot
+                boolean venueAvailable = venueBookingService.bookVenueForEvent(event, event.getVenueId());
+                if (!venueAvailable) {
+                    throw new IllegalArgumentException("Venue is not available for the new time slot");
+                }
+            }
+            
+            // Update event times
+            event.setStartDateTime(newStartTime);
+            event.setEndDateTime(newEndTime);
+            event.setLastModified(LocalDateTime.now());
+            
+            // Get all registered attendees for notifications
+            List<String> attendeeIds = new ArrayList<>();
+            if (event.getRegistrations() != null) {
+                attendeeIds = event.getRegistrations().stream()
+                    .map(registration -> registration.getAttendeeId())
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            // Send rescheduling notifications
+            if (notificationService != null && !attendeeIds.isEmpty()) {
+                String message = String.format(
+                    "Event '%s' has been rescheduled. New date/time: %s to %s. Reason: %s",
+                    event.getTitle(),
+                    newStartTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    newEndTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    reason != null ? reason : "Schedule adjustment"
+                );
+                
+                notificationService.sendNotification(message, attendeeIds,
+                    com.campuseventhub.model.notification.NotificationType.EVENT_UPDATE);
+            }
+            
+            // Notify waitlisted users about rescheduling
+            if (event.getWaitlist() != null && !event.getWaitlist().isEmpty() && notificationService != null) {
+                List<String> waitlistIds = new ArrayList<>();
+                event.getWaitlist().forEach(waitlistEntry -> waitlistIds.add(waitlistEntry.toString()));
+                
+                String waitlistMessage = String.format(
+                    "Event '%s' that you are waitlisted for has been rescheduled to %s. Reason: %s",
+                    event.getTitle(),
+                    newStartTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    reason != null ? reason : "Schedule adjustment"
+                );
+                
+                notificationService.sendNotification(waitlistMessage, waitlistIds,
+                    com.campuseventhub.model.notification.NotificationType.EVENT_UPDATE);
+            }
+            
+            // Persist changes
+            update(event);
+            
+            return true;
+            
+        } catch (Exception e) {
+            // Rollback on failure
+            event.setStartDateTime(originalStart);
+            event.setEndDateTime(originalEnd);
+            
+            // Try to restore venue booking if it was cancelled
+            if (event.hasVenue() && venueBookingService != null) {
+                try {
+                    venueBookingService.bookVenueForEvent(event, event.getVenueId());
+                } catch (Exception venueRestoreException) {
+                    // Log venue restore failure but don't throw - focus on original error
+                    System.err.println("Failed to restore venue booking during rollback: " + 
+                        venueRestoreException.getMessage());
+                }
+            }
+            
+            throw new RuntimeException("Failed to reschedule event: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Checks if an event can be cancelled based on business rules
+     */
+    public boolean canCancelEvent(String eventId) {
+        Event event = events.get(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        // Cannot cancel already cancelled or completed events
+        if (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.COMPLETED) {
+            return false;
+        }
+        
+        // Can cancel events that are draft, published, or active
+        return true;
+    }
+    
+    /**
+     * Checks if an event can be rescheduled based on business rules
+     */
+    public boolean canRescheduleEvent(String eventId) {
+        Event event = events.get(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        // Cannot reschedule cancelled or completed events
+        if (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.COMPLETED) {
+            return false;
+        }
+        
+        // Cannot reschedule events that have already started
+        if (event.getStartDateTime().isBefore(LocalDateTime.now())) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // =============================================================================
+    // WAITLIST MANAGEMENT METHODS
+    // =============================================================================
+    
+    /**
+     * Adds an attendee to the waitlist for an event
+     */
+    public boolean addToWaitlist(String eventId, String attendeeId) {
+        Event event = findById(eventId);
+        if (event == null || waitlistManager == null) {
+            return false;
+        }
+        
+        Registration registration = new Registration(attendeeId, eventId);
+        return waitlistManager.addToWaitlist(event, registration);
+    }
+    
+    /**
+     * Removes an attendee from the waitlist
+     */
+    public boolean removeFromWaitlist(String eventId, String registrationId) {
+        Event event = findById(eventId);
+        if (event == null || waitlistManager == null) {
+            return false;
+        }
+        
+        return waitlistManager.removeFromWaitlist(event, registrationId);
+    }
+    
+    /**
+     * Gets waitlist statistics for an event
+     */
+    public WaitlistManager.WaitlistStatistics getWaitlistStatistics(String eventId) {
+        Event event = findById(eventId);
+        if (event == null || waitlistManager == null) {
+            return new WaitlistManager.WaitlistStatistics(0, 0, 0);
+        }
+        
+        return waitlistManager.getWaitlistStatistics(event);
+    }
+    
+    /**
+     * Gets the waitlist position for a specific attendee
+     */
+    public int getWaitlistPosition(String eventId, String attendeeId) {
+        Event event = findById(eventId);
+        if (event == null || waitlistManager == null) {
+            return -1;
+        }
+        
+        return waitlistManager.getWaitlistPosition(event, attendeeId);
+    }
+    
+    /**
+     * Manually promotes attendees from waitlist (for administrative purposes)
+     */
+    public WaitlistManager.WaitlistPromotionResult promoteFromWaitlist(String eventId, int numberOfPromotions) {
+        Event event = findById(eventId);
+        if (event == null || waitlistManager == null) {
+            return new WaitlistManager.WaitlistPromotionResult(0, new ArrayList<>(), new ArrayList<>());
+        }
+        
+        return waitlistManager.promoteFromWaitlist(event, numberOfPromotions);
+    }
+    
+    /**
+     * Checks if an attendee is on the waitlist for an event
+     */
+    public boolean isOnWaitlist(String eventId, String attendeeId) {
+        Event event = findById(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        return event.isOnWaitlist(attendeeId);
+    }
+
+    // =============================================================================
+    // REGISTRATION DEADLINE MANAGEMENT
+    // =============================================================================
+    
+    /**
+     * Extends the registration deadline for an event (Organizer or Admin only)
+     */
+    public boolean extendRegistrationDeadline(String eventId, LocalDateTime newDeadline, String reason) {
+        if (deadlineManager == null) {
+            return false;
+        }
+        return deadlineManager.extendRegistrationDeadline(eventId, newDeadline, reason);
+    }
+    
+    /**
+     * Manually processes deadlines for a specific event
+     */
+    public void processEventDeadlineImmediately(String eventId) {
+        if (deadlineManager != null) {
+            deadlineManager.processEventDeadlineImmediately(eventId);
+        }
+    }
+    
+    /**
+     * Gets registration deadline statistics
+     */
+    public RegistrationDeadlineManager.RegistrationDeadlineStatistics getDeadlineStatistics() {
+        if (deadlineManager == null) {
+            return new RegistrationDeadlineManager.RegistrationDeadlineStatistics(0, 0, 0, 0);
+        }
+        return deadlineManager.getDeadlineStatistics();
+    }
+    
+    /**
+     * Sets a registration deadline for an event
+     */
+    public boolean setRegistrationDeadline(String eventId, LocalDateTime deadline) {
+        Event event = findById(eventId);
+        if (event == null || deadline == null) {
+            return false;
+        }
+        
+        // Validate deadline is before event start time
+        if (!deadline.isBefore(event.getStartDateTime())) {
+            return false;
+        }
+        
+        event.setRegistrationDeadline(deadline);
+        event.setLastModified(LocalDateTime.now());
+        update(event);
+        
+        return true;
+    }
+    
+    /**
+     * Removes the registration deadline from an event (makes registration open indefinitely until event starts)
+     */
+    public boolean removeRegistrationDeadline(String eventId) {
+        Event event = findById(eventId);
+        if (event == null) {
+            return false;
+        }
+        
+        event.setRegistrationDeadline(null);
+        event.setLastModified(LocalDateTime.now());
+        update(event);
+        
+        return true;
+    }
+
+    // =============================================================================
+    // DATA PERSISTENCE
+    // =============================================================================
+
     /**
      * Loads events and registrations from persistence
      */

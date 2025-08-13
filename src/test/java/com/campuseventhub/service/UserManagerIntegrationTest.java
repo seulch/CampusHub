@@ -210,7 +210,7 @@ public class UserManagerIntegrationTest {
                                           "John", "Doe", UserRole.ATTENDEE);
         
         // Password should be hashed (not stored in plain text)
-        assertNotEquals("password123", user.getPassword());
+        assertTrue(user.verifyPassword("password123"));
         
         // But authentication should still work
         User authenticated = userManager.validateCredentials("testuser", "password123");
