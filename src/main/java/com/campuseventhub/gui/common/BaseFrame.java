@@ -4,12 +4,16 @@
 
 package com.campuseventhub.gui.common;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import com.campuseventhub.service.EventHub;
+import javax.swing.Box;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+
 import com.campuseventhub.gui.LoginFrame;
+import com.campuseventhub.service.EventHub;
 
 /**
  * Common base frame that provides shared window configuration for all
@@ -55,6 +59,8 @@ public abstract class BaseFrame extends JFrame {
             userMenu.setText("User (" + eventHub.getCurrentUser().getUsername() + ")");
         }
         
+
+        
         JMenuItem logoutItem = new JMenuItem("Logout");
         logoutItem.addActionListener(e -> performLogout());
         userMenu.add(logoutItem);
@@ -62,6 +68,23 @@ public abstract class BaseFrame extends JFrame {
         menuBar.add(Box.createHorizontalGlue()); // Push user menu to right
         menuBar.add(userMenu);
         
+        // Help Menu (non-intrusive)
+        JMenu helpMenu = new JMenu("Help");
+        JMenuItem aboutItem = new JMenuItem("About");
+        aboutItem.addActionListener(e -> JOptionPane.showMessageDialog(
+                this,
+                "<html><b>Campus Event Hub</b><br/>" +
+                "Version 1.0<br/>" +
+                "Java: " + System.getProperty("java.version") + "<br/>" +
+                "User: " + (eventHub.getCurrentUser() != null
+                        ? eventHub.getCurrentUser().getUsername() : "Guest") +
+                "</html>",
+                "About",
+                JOptionPane.INFORMATION_MESSAGE
+        ));
+        helpMenu.add(aboutItem);
+        menuBar.add(helpMenu);
+
         setJMenuBar(menuBar);
     }
     
