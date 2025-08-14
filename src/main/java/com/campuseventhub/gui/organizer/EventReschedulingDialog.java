@@ -2,6 +2,7 @@ package com.campuseventhub.gui.organizer;
 
 import com.campuseventhub.model.event.Event;
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -81,16 +82,9 @@ public class EventReschedulingDialog extends JDialog {
         
         // Action buttons
         JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton rescheduleBtn = new JButton("Reschedule Event");
-        JButton cancelBtn = new JButton("Cancel");
-        JButton checkAvailabilityBtn = new JButton("Check Venue Availability");
-        
-        rescheduleBtn.setBackground(new Color(0, 120, 200));
-        rescheduleBtn.setForeground(Color.WHITE);
-        rescheduleBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        
-        checkAvailabilityBtn.setBackground(new Color(255, 165, 0));
-        checkAvailabilityBtn.setForeground(Color.WHITE);
+        JButton rescheduleBtn = ComponentFactory.createWarningButton("Reschedule Event");
+        JButton cancelBtn = ComponentFactory.createStandardButton("Cancel");
+        JButton checkAvailabilityBtn = ComponentFactory.createPrimaryButton("Check Venue Availability");
         
         rescheduleBtn.addActionListener(e -> performRescheduling());
         cancelBtn.addActionListener(e -> dispose());
@@ -215,37 +209,79 @@ public class EventReschedulingDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
         
-        // Calculate impact
-        int registeredCount = event.getRegistrations() != null ? event.getRegistrations().size() : 0;
-        int waitlistCount = event.getWaitlist() != null ? event.getWaitlist().size() : 0;
-        int totalAffected = registeredCount + waitlistCount;
+        // Calculate impact with better registration counting
+        int confirmedCount = 0;
+        int waitlistCount = 0;
         
+        if (event.getRegistrations() != null) {
+            for (com.campuseventhub.model.event.Registration reg : event.getRegistrations()) {
+                if (reg.getStatus() == com.campuseventhub.model.event.RegistrationStatus.CONFIRMED) {
+                    confirmedCount++;
+                } else if (reg.getStatus() == com.campuseventhub.model.event.RegistrationStatus.WAITLISTED) {
+                    waitlistCount++;
+                }
+            }
+        }
+        
+        // Also count waitlist
+        if (event.getWaitlist() != null) {
+            waitlistCount += event.getWaitlist().size();
+        }
+        
+        int totalRegistered = confirmedCount + waitlistCount;
+        int totalAffected = totalRegistered; // All registered/waitlisted will be affected
+        
+        // Event capacity info
         gbc.gridx = 0; gbc.gridy = 0;
-        panel.add(new JLabel("Registered Attendees:"), gbc);
+        panel.add(new JLabel("Event Capacity:"), gbc);
         gbc.gridx = 1;
-        panel.add(new JLabel(String.valueOf(registeredCount)), gbc);
+        panel.add(new JLabel(event.getMaxCapacity() + " attendees"), gbc);
         
         gbc.gridx = 0; gbc.gridy = 1;
-        panel.add(new JLabel("Waitlisted Attendees:"), gbc);
+        panel.add(new JLabel("Confirmed Attendees:"), gbc);
         gbc.gridx = 1;
-        panel.add(new JLabel(String.valueOf(waitlistCount)), gbc);
+        JLabel confirmedLabel = new JLabel(String.valueOf(confirmedCount));
+        if (confirmedCount > 0) {
+            confirmedLabel.setForeground(new Color(0, 150, 0)); // Green for confirmed
+            confirmedLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        }
+        panel.add(confirmedLabel, gbc);
         
         gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Waitlisted Attendees:"), gbc);
+        gbc.gridx = 1;
+        JLabel waitlistLabel = new JLabel(String.valueOf(waitlistCount));
+        if (waitlistCount > 0) {
+            waitlistLabel.setForeground(new Color(255, 140, 0)); // Orange for waitlisted
+            waitlistLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        }
+        panel.add(waitlistLabel, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 3;
         panel.add(new JLabel("Total to be Notified:"), gbc);
         gbc.gridx = 1;
         impactLabel = new JLabel(String.valueOf(totalAffected));
-        impactLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        impactLabel.setFont(new Font("Arial", Font.BOLD, 14));
         if (totalAffected > 0) {
             impactLabel.setForeground(new Color(0, 100, 200));
+        } else {
+            impactLabel.setForeground(Color.GRAY);
         }
         panel.add(impactLabel, gbc);
         
+        // Impact description
+        gbc.gridx = 0; gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
         if (totalAffected > 0) {
-            gbc.gridx = 0; gbc.gridy = 3;
-            gbc.gridwidth = 2;
-            JLabel notificationLabel = new JLabel("📧 All affected users will be notified about the new schedule");
+            JLabel notificationLabel = new JLabel("<html>📧 All " + totalAffected + " affected attendees will be notified about the schedule change</html>");
             notificationLabel.setForeground(Color.BLUE);
             panel.add(notificationLabel, gbc);
+        } else {
+            JLabel noImpactLabel = new JLabel("ℹ️ No attendees registered - no notifications needed");
+            noImpactLabel.setForeground(Color.GRAY);
+            panel.add(noImpactLabel, gbc);
         }
         
         return panel;

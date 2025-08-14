@@ -6,9 +6,6 @@ package com.campuseventhub.service;
 
 import com.campuseventhub.model.user.User;
 import com.campuseventhub.model.user.UserRole;
-import com.campuseventhub.model.user.Admin;
-import com.campuseventhub.model.user.Organizer;
-import com.campuseventhub.model.user.Attendee;
 import com.campuseventhub.model.user.UserStatus;
 import com.campuseventhub.persistence.UserRepository;
 import com.campuseventhub.persistence.DataManager;
@@ -34,7 +31,6 @@ public class UserManager implements UserRepository {
     
     // Specialized services
     private UserAuthenticationService authService;
-    private UserStatusService statusService;
     private UserSearchService searchService;
     
     /**
@@ -49,7 +45,6 @@ public class UserManager implements UserRepository {
         
         // Initialize specialized services
         this.authService = new UserAuthenticationService(usersByUsername);
-        this.statusService = new UserStatusService(users);
         this.searchService = new UserSearchService(users, usersByEmail, usersByUsername);
     }
     
@@ -298,23 +293,45 @@ public class UserManager implements UserRepository {
     }
     
     /**
-     * Gets users pending approval using status service
+     * Gets users pending approval
      */
     public List<User> getPendingApprovals() {
-        return statusService.getPendingApprovals();
+        List<User> pendingUsers = new ArrayList<>();
+        for (User user : users.values()) {
+            if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
+                pendingUsers.add(user);
+            }
+        }
+        return pendingUsers;
     }
     
     /**
-     * Approves a user using status service
+     * Approves a user account
      */
     public boolean approveUser(String userId) {
-        return statusService.approveUser(userId);
+        User user = users.get(userId);
+        if (user != null && user.getStatus() == UserStatus.PENDING_APPROVAL) {
+            user.setStatus(UserStatus.ACTIVE);
+            saveUsersToPersistence();
+            System.out.println("UserManager: Approved user " + userId + " (" + user.getUsername() + ")");
+            return true;
+        }
+        System.out.println("UserManager: Failed to approve user " + userId + " - user not found or not pending approval");
+        return false;
     }
     
     /**
-     * Suspends a user account using status service
+     * Suspends a user account
      */
     public boolean suspendUser(String userId) {
-        return statusService.suspendUser(userId);
+        User user = users.get(userId);
+        if (user != null && user.getStatus() == UserStatus.ACTIVE) {
+            user.setStatus(UserStatus.SUSPENDED);
+            saveUsersToPersistence();
+            System.out.println("UserManager: Suspended user " + userId + " (" + user.getUsername() + ")");
+            return true;
+        }
+        System.out.println("UserManager: Failed to suspend user " + userId + " - user not found or not active");
+        return false;
     }
 }

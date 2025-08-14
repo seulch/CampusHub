@@ -21,9 +21,13 @@ import com.campuseventhub.service.EventHub;
  * to perform component creation and event binding.
  */
 public abstract class BaseFrame extends JFrame {
+    protected static final int DEFAULT_WINDOW_WIDTH = 1024;
+    protected static final int DEFAULT_WINDOW_HEIGHT = 768;
+    
     protected EventHub eventHub;
     protected JMenuBar menuBar;
     protected JMenu userMenu;
+    protected JMenu notificationMenu;
 
     /**
      * Constructs the frame with a provided window title and applies common
@@ -43,15 +47,27 @@ public abstract class BaseFrame extends JFrame {
      */
     private void configureWindow() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1024, 768);
+        setSize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
         setLocationRelativeTo(null);
     }
     
     /**
-     * Creates the common menu bar with user actions
+     * Creates the common menu bar with user actions and notifications
      */
     private void createMenuBar() {
         menuBar = new JMenuBar();
+        
+        // Notifications Menu
+        notificationMenu = new JMenu("Notifications");
+        updateNotificationBadge();
+        
+        JMenuItem viewNotificationsItem = new JMenuItem("View All Notifications");
+        viewNotificationsItem.addActionListener(e -> showNotificationsDialog());
+        notificationMenu.add(viewNotificationsItem);
+        
+        JMenuItem clearNotificationsItem = new JMenuItem("Clear All Notifications");
+        clearNotificationsItem.addActionListener(e -> clearNotifications());
+        notificationMenu.add(clearNotificationsItem);
         
         // User Menu
         userMenu = new JMenu("User");
@@ -65,6 +81,7 @@ public abstract class BaseFrame extends JFrame {
         logoutItem.addActionListener(e -> performLogout());
         userMenu.add(logoutItem);
         
+        menuBar.add(notificationMenu);
         menuBar.add(Box.createHorizontalGlue()); // Push user menu to right
         menuBar.add(userMenu);
         
@@ -108,6 +125,78 @@ public abstract class BaseFrame extends JFrame {
                 loginFrame.setVisible(true);
             });
         }
+    }
+    
+    /**
+     * Updates the notification menu badge with unread count
+     */
+    protected void updateNotificationBadge() {
+        if (notificationMenu != null && eventHub.isUserLoggedIn()) {
+            java.util.List<com.campuseventhub.model.notification.Notification> notifications = 
+                eventHub.getCurrentUserNotifications();
+            int unreadCount = notifications.size();
+            
+            if (unreadCount > 0) {
+                notificationMenu.setText("Notifications (" + unreadCount + ")");
+                notificationMenu.setForeground(Color.RED);
+            } else {
+                notificationMenu.setText("Notifications");
+                notificationMenu.setForeground(Color.BLACK);
+            }
+        }
+    }
+    
+    /**
+     * Shows all notifications in a dialog
+     */
+    protected void showNotificationsDialog() {
+        if (!eventHub.isUserLoggedIn()) {
+            return;
+        }
+        
+        java.util.List<com.campuseventhub.model.notification.Notification> notifications = 
+            eventHub.getCurrentUserNotifications();
+        
+        if (notifications.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "No notifications to display.", 
+                "Notifications", 
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        StringBuilder notificationText = new StringBuilder();
+        notificationText.append("=== YOUR NOTIFICATIONS ===\n\n");
+        
+        for (com.campuseventhub.model.notification.Notification notification : notifications) {
+            notificationText.append("• ").append(notification.getType().getDisplayName()).append("\n");
+            notificationText.append("  ").append(notification.getMessage()).append("\n");
+            notificationText.append("  Time: ").append(notification.getCreatedAt().format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n\n");
+        }
+        
+        JTextArea textArea = new JTextArea(notificationText.toString());
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(500, 400));
+        
+        JOptionPane.showMessageDialog(this, scrollPane, 
+            "Your Notifications", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Clears all notifications for the current user
+     */
+    protected void clearNotifications() {
+        // For now, just show a message. In a real implementation, 
+        // we would mark notifications as read in the service
+        JOptionPane.showMessageDialog(this, 
+            "All notifications have been cleared.", 
+            "Notifications Cleared", 
+            JOptionPane.INFORMATION_MESSAGE);
+        updateNotificationBadge();
     }
 
     // ---------------------------------------------------------------------

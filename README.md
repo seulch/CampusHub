@@ -152,14 +152,13 @@ Campus EventHub will be implemented as a Java desktop app with a GUI featuring r
 
 ---
 
-## Class Diagram:
+## System Diagrams
 
-![alt text](project_information/Class_diagram.png)
+### Class Diagram:
+![Class Diagram](project_information/Class_diagram.png)
 
-## Usecase Diagram:
+### Use Case Diagram:
+![Use Case Diagram](project_information/Usecase_diagram.png)
 
-![alt text](project_information/Usecase_diagram.png)
-
-## Sequence Diagram:
-
-![alt text](project_information/Sequence_diagram.png)
+### Sequence Diagram:
+![Sequence Diagram](project_information/seq_diagram.png)

@@ -106,9 +106,163 @@ public class OrganizerActionHandler {
     
     public void viewEventDetails(String selectedEvent) {
         if (selectedEvent != null && !selectedEvent.contains("No events found")) {
-            JOptionPane.showMessageDialog(parentFrame, "Event Details:\n" + selectedEvent, 
-                "Event Information", JOptionPane.INFORMATION_MESSAGE);
+            // Get the actual event object to show detailed information
+            Event selectedEventObj = getSelectedEventFromString(selectedEvent);
+            if (selectedEventObj != null) {
+                showDetailedEventInfo(selectedEventObj);
+            } else {
+                JOptionPane.showMessageDialog(parentFrame, "Event Details:\n" + selectedEvent, 
+                    "Event Information", JOptionPane.INFORMATION_MESSAGE);
+            }
         }
+    }
+    
+    /**
+     * Shows detailed event information including registrations
+     */
+    private void showDetailedEventInfo(Event event) {
+        StringBuilder details = new StringBuilder();
+        details.append("=== EVENT DETAILS ===\n\n");
+        details.append("Title: ").append(event.getTitle()).append("\n");
+        details.append("Description: ").append(event.getDescription()).append("\n");
+        details.append("Type: ").append(event.getEventType().getDisplayName()).append("\n");
+        details.append("Status: ").append(event.getStatus().getDisplayName()).append("\n");
+        details.append("Start: ").append(event.getStartDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n");
+        details.append("End: ").append(event.getEndDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n");
+        
+        if (event.hasVenue()) {
+            details.append("Venue: ").append(event.getVenueName()).append("\n");
+        }
+        
+        // Registration information
+        int totalRegistrations = event.getRegistrations() != null ? event.getRegistrations().size() : 0;
+        int confirmedRegistrations = 0;
+        int waitlistedRegistrations = 0;
+        
+        if (event.getRegistrations() != null) {
+            for (com.campuseventhub.model.event.Registration reg : event.getRegistrations()) {
+                if (reg.getStatus() == com.campuseventhub.model.event.RegistrationStatus.CONFIRMED) {
+                    confirmedRegistrations++;
+                } else if (reg.getStatus() == com.campuseventhub.model.event.RegistrationStatus.WAITLISTED) {
+                    waitlistedRegistrations++;
+                }
+            }
+        }
+        
+        details.append("\n=== REGISTRATION DETAILS ===\n");
+        details.append("Total Capacity: ").append(event.getMaxCapacity()).append("\n");
+        details.append("Confirmed Registrations: ").append(confirmedRegistrations).append("\n");
+        details.append("Waitlisted Registrations: ").append(waitlistedRegistrations).append("\n");
+        details.append("Available Spots: ").append(event.getAvailableSpots()).append("\n");
+        details.append("Registration Status: ").append(event.isRegistrationOpen() ? "Open" : "Closed").append("\n");
+        
+        JTextArea textArea = new JTextArea(details.toString());
+        textArea.setEditable(false);
+        textArea.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 12));
+        
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new java.awt.Dimension(500, 400));
+        
+        JOptionPane.showMessageDialog(parentFrame, scrollPane, 
+            "Event Details: " + event.getTitle(), JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Helper method to get the Event object from the list display string
+     */
+    private Event getSelectedEventFromString(String eventDisplayString) {
+        // Try to get the event from the event list panel
+        if (parentFrame instanceof OrganizerDashboard) {
+            OrganizerDashboard dashboard = (OrganizerDashboard) parentFrame;
+            // This would need to be implemented in the dashboard to get the selected event object
+            // For now, we'll parse the title from the string and search for it
+            String eventTitle = eventDisplayString.split(" - ")[0];
+            java.util.List<Event> myEvents = eventHub.getEventsByOrganizer(organizer.getUserId());
+            for (Event event : myEvents) {
+                if (event.getTitle().equals(eventTitle)) {
+                    return event;
+                }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Shows detailed registration information for an event
+     */
+    public void viewRegistrations(Event selectedEvent) {
+        if (selectedEvent == null) {
+            JOptionPane.showMessageDialog(parentFrame, 
+                "Please select an event to view registrations.", 
+                "No Event Selected", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        StringBuilder registrationDetails = new StringBuilder();
+        registrationDetails.append("=== REGISTRATION DETAILS ===\n\n");
+        registrationDetails.append("Event: ").append(selectedEvent.getTitle()).append("\n");
+        registrationDetails.append("Date: ").append(selectedEvent.getStartDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n");
+        registrationDetails.append("Capacity: ").append(selectedEvent.getMaxCapacity()).append("\n\n");
+        
+        java.util.List<com.campuseventhub.model.event.Registration> registrations = selectedEvent.getRegistrations();
+        
+        if (registrations == null || registrations.isEmpty()) {
+            registrationDetails.append("No registrations yet.\n");
+        } else {
+            // Count registrations by status
+            int confirmedCount = 0;
+            int waitlistedCount = 0;
+            java.util.List<com.campuseventhub.model.event.Registration> confirmedRegs = new java.util.ArrayList<>();
+            java.util.List<com.campuseventhub.model.event.Registration> waitlistedRegs = new java.util.ArrayList<>();
+            
+            for (com.campuseventhub.model.event.Registration reg : registrations) {
+                if (reg.getStatus() == com.campuseventhub.model.event.RegistrationStatus.CONFIRMED) {
+                    confirmedCount++;
+                    confirmedRegs.add(reg);
+                } else if (reg.getStatus() == com.campuseventhub.model.event.RegistrationStatus.WAITLISTED) {
+                    waitlistedCount++;
+                    waitlistedRegs.add(reg);
+                }
+            }
+            
+            registrationDetails.append("SUMMARY:\n");
+            registrationDetails.append("- Confirmed: ").append(confirmedCount).append("\n");
+            registrationDetails.append("- Waitlisted: ").append(waitlistedCount).append("\n");
+            registrationDetails.append("- Available Spots: ").append(selectedEvent.getAvailableSpots()).append("\n\n");
+            
+            // Show confirmed registrations
+            if (!confirmedRegs.isEmpty()) {
+                registrationDetails.append("CONFIRMED ATTENDEES:\n");
+                for (com.campuseventhub.model.event.Registration reg : confirmedRegs) {
+                    registrationDetails.append("• ").append(reg.getAttendeeId())
+                        .append(" (Registered: ").append(reg.getRegistrationTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                        .append(")\n");
+                }
+                registrationDetails.append("\n");
+            }
+            
+            // Show waitlisted registrations
+            if (!waitlistedRegs.isEmpty()) {
+                registrationDetails.append("WAITLISTED ATTENDEES:\n");
+                for (com.campuseventhub.model.event.Registration reg : waitlistedRegs) {
+                    registrationDetails.append("• ").append(reg.getAttendeeId())
+                        .append(" (Position: #").append(reg.getWaitlistPosition())
+                        .append(", Registered: ").append(reg.getRegistrationTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                        .append(")\n");
+                }
+            }
+        }
+        
+        JTextArea textArea = new JTextArea(registrationDetails.toString());
+        textArea.setEditable(false);
+        textArea.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 12));
+        
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new java.awt.Dimension(600, 500));
+        
+        JOptionPane.showMessageDialog(parentFrame, scrollPane, 
+            "Registrations: " + selectedEvent.getTitle(), JOptionPane.INFORMATION_MESSAGE);
     }
     
     public void editEvent(Event selectedEvent) {

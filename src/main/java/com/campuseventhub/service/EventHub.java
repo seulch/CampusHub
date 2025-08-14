@@ -11,6 +11,7 @@ import com.campuseventhub.model.event.EventType;
 import com.campuseventhub.model.event.EventSearchCriteria;
 import com.campuseventhub.model.event.Registration;
 import com.campuseventhub.model.venue.Venue;
+import com.campuseventhub.model.notification.Notification;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -289,6 +290,30 @@ public class EventHub {
             return new ArrayList<>();
         }
         return userManager.getPendingApprovals();
+    }
+    
+    /**
+     * Gets notifications for the current user
+     */
+    public List<Notification> getCurrentUserNotifications() {
+        if (currentUser == null) {
+            return new ArrayList<>();
+        }
+        return notificationService.getUserNotifications(currentUser.getUserId());
+    }
+    
+    /**
+     * Gets notifications for a specific user
+     */
+    public List<Notification> getUserNotifications(String userId) {
+        return notificationService.getUserNotifications(userId);
+    }
+    
+    /**
+     * Gets the notification service instance
+     */
+    public NotificationService getNotificationService() {
+        return notificationService;
     }
     
     /**

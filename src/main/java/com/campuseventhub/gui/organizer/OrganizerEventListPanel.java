@@ -1,7 +1,10 @@
 package com.campuseventhub.gui.organizer;
 
 import com.campuseventhub.model.event.Event;
+import com.campuseventhub.model.event.Registration;
+import com.campuseventhub.model.event.RegistrationStatus;
 import com.campuseventhub.service.EventHub;
+import com.campuseventhub.gui.common.ComponentFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -14,6 +17,7 @@ public class OrganizerEventListPanel extends JPanel {
     private DefaultListModel<String> eventsListModel;
     private JList<String> eventsList;
     private ActionListener onViewEvent;
+    private ActionListener onViewRegistrations;
     private ActionListener onEditEvent;
     private ActionListener onPublishEvent;
     private ActionListener onCancelEvent;
@@ -40,26 +44,20 @@ public class OrganizerEventListPanel extends JPanel {
         eventsScrollPane.setPreferredSize(new Dimension(600, 400));
         
         JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton refreshBtn = new JButton("Refresh");
-        JButton viewEventBtn = new JButton("View Event");
-        JButton editEventBtn = new JButton("Edit Event");
-        JButton publishEventBtn = new JButton("Publish Event");
-        JButton rescheduleEventBtn = new JButton("Reschedule");
-        JButton cancelEventBtn = new JButton("Cancel Event");
-        
-        // Style the cancel button to be more prominent
-        cancelEventBtn.setBackground(new Color(220, 53, 69));
-        cancelEventBtn.setForeground(Color.WHITE);
-        cancelEventBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        
-        // Style the reschedule button
-        rescheduleEventBtn.setBackground(new Color(255, 193, 7));
-        rescheduleEventBtn.setForeground(Color.BLACK);
-        rescheduleEventBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        JButton refreshBtn = ComponentFactory.createStandardButton("Refresh");
+        JButton viewEventBtn = ComponentFactory.createStandardButton("View Event");
+        JButton viewRegistrationsBtn = ComponentFactory.createPrimaryButton("View Registrations");
+        JButton editEventBtn = ComponentFactory.createStandardButton("Edit Event");
+        JButton publishEventBtn = ComponentFactory.createSuccessButton("Publish Event");
+        JButton rescheduleEventBtn = ComponentFactory.createWarningButton("Reschedule");
+        JButton cancelEventBtn = ComponentFactory.createErrorButton("Cancel Event");
         
         refreshBtn.addActionListener(e -> loadMyEvents());
         viewEventBtn.addActionListener(e -> {
             if (onViewEvent != null) onViewEvent.actionPerformed(e);
+        });
+        viewRegistrationsBtn.addActionListener(e -> {
+            if (onViewRegistrations != null) onViewRegistrations.actionPerformed(e);
         });
         editEventBtn.addActionListener(e -> {
             if (onEditEvent != null) onEditEvent.actionPerformed(e);
@@ -76,6 +74,7 @@ public class OrganizerEventListPanel extends JPanel {
         
         buttonsPanel.add(refreshBtn);
         buttonsPanel.add(viewEventBtn);
+        buttonsPanel.add(viewRegistrationsBtn);
         buttonsPanel.add(editEventBtn);
         buttonsPanel.add(publishEventBtn);
         buttonsPanel.add(rescheduleEventBtn);
@@ -95,11 +94,24 @@ public class OrganizerEventListPanel extends JPanel {
             eventsListModel.addElement("No events found. Create your first event!");
         } else {
             for (Event event : currentEvents) {
-                String eventInfo = String.format("%s - %s (%s) - %s", 
+                // Get confirmed registration count
+                int confirmedCount = 0;
+                if (event.getRegistrations() != null) {
+                    for (Registration reg : event.getRegistrations()) {
+                        if (reg.getStatus() == RegistrationStatus.CONFIRMED) {
+                            confirmedCount++;
+                        }
+                    }
+                }
+                int maxCapacity = event.getMaxCapacity();
+                
+                String eventInfo = String.format("%s - %s (%s) - %s - Registered: %d/%d", 
                     event.getTitle(),
                     event.getEventType().getDisplayName(),
                     event.getStatus().getDisplayName(),
-                    event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                    event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    confirmedCount,
+                    maxCapacity
                 );
                 eventsListModel.addElement(eventInfo);
             }
@@ -123,6 +135,10 @@ public class OrganizerEventListPanel extends JPanel {
     
     public void setOnViewEvent(ActionListener listener) {
         this.onViewEvent = listener;
+    }
+    
+    public void setOnViewRegistrations(ActionListener listener) {
+        this.onViewRegistrations = listener;
     }
     
     public void setOnEditEvent(ActionListener listener) {

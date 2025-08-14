@@ -44,8 +44,8 @@ public class ScheduleValidator {
      * Registers an event in the schedule for conflict detection
      */
     public void registerEvent(Event event) {
-        // For now, we'll use a simplified approach since Event doesn't expose venueId directly
-        // In a complete implementation, we'd modify the Event model to include venueId
+        // Currently using a simplified approach since Event doesn't expose venueId directly
+        // Future implementation should modify the Event model to include venueId
         organizerSchedules.computeIfAbsent(event.getOrganizerId(), k -> new ArrayList<>()).add(event);
     }
     

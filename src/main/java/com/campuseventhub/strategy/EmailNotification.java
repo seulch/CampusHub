@@ -7,8 +7,11 @@ public class EmailNotification implements NotificationStrategy {
 
     @Override
     public boolean sendNotification(String message, String recipient) {
-        // TODO: Implement email sending
-        return false;
+        // Simulated email sending
+        System.out.println("[EMAIL] To: " + recipient);
+        System.out.println("[EMAIL] Message: " + message);
+        System.out.println("[EMAIL] Status: Delivered\n");
+        return true;
     }
 
     @Override
@@ -18,7 +21,7 @@ public class EmailNotification implements NotificationStrategy {
 
     @Override
     public boolean isAvailable() {
-        // TODO: Check email service status
+        // Simulated email service availability check
         return true;
     }
 }

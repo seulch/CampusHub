@@ -40,8 +40,8 @@ public class AttendeeEventBrowser extends JPanel {
             typeFilter.addItem(type);
         }
         
-        JButton searchBtn = new JButton("Search");
-        JButton clearBtn = new JButton("Clear");
+        JButton searchBtn = ComponentFactory.createPrimaryButton("Search");
+        JButton clearBtn = ComponentFactory.createStandardButton("Clear");
         
         searchPanel.add(new JLabel("Search:"));
         searchPanel.add(searchField);
@@ -56,9 +56,9 @@ public class AttendeeEventBrowser extends JPanel {
         eventsScrollPane.setPreferredSize(new Dimension(600, 300));
         
         JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton refreshBtn = new JButton("Refresh");
-        JButton viewEventBtn = new JButton("View Details");
-        JButton registerBtn = new JButton("Register for Event");
+        JButton refreshBtn = ComponentFactory.createStandardButton("Refresh");
+        JButton viewEventBtn = ComponentFactory.createStandardButton("View Details");
+        JButton registerBtn = ComponentFactory.createSuccessButton("Register for Event");
         
         refreshBtn.addActionListener(e -> loadAvailableEvents());
         viewEventBtn.addActionListener(e -> {

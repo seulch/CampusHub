@@ -7,8 +7,11 @@ public class InAppNotification implements NotificationStrategy {
 
     @Override
     public boolean sendNotification(String message, String recipient) {
-        // TODO: Implement in-app notification storage
-        return false;
+        // Simulated in-app notification
+        System.out.println("[IN-APP] To: " + recipient);
+        System.out.println("[IN-APP] Message: " + message);
+        System.out.println("[IN-APP] Status: Displayed\n");
+        return true;
     }
 
     @Override

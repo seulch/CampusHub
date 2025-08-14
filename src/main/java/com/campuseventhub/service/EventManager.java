@@ -34,6 +34,8 @@ import java.io.IOException;
  * - Integration with venue and notification services
  */
 public class EventManager implements EventRepository {
+    private static final int DEFAULT_EVENT_CAPACITY = 50;
+    
     private Map<String, Event> events;
     private Map<String, List<Event>> eventsByOrganizer;
     private Map<EventType, List<Event>> eventsByType;
@@ -233,7 +235,7 @@ public class EventManager implements EventRepository {
     public Event createEvent(String title, String description, EventType type,
                            LocalDateTime startTime, LocalDateTime endTime,
                            String organizerId, String venueId) {
-        return createEvent(title, description, type, startTime, endTime, organizerId, venueId, 50);
+        return createEvent(title, description, type, startTime, endTime, organizerId, venueId, DEFAULT_EVENT_CAPACITY);
     }
     
     /**
@@ -355,34 +357,62 @@ public class EventManager implements EventRepository {
             throw new IllegalArgumentException("Schedule conflict: You are already registered for another event during this time period");
         }
         
-        return registrationManager.createRegistration(eventId, attendeeId);
+        Registration registration = registrationManager.createRegistration(eventId, attendeeId);
+        
+        // Sync the registration with the Event object
+        if (registration != null) {
+            syncEventRegistrations(eventId);
+        }
+        
+        return registration;
     }
     
     public boolean cancelRegistration(String registrationId, String reason) {
         // Find the event for this registration first
-        Event event = null;
+        String eventId = null;
         for (Event e : events.values()) {
             if (e.getRegistrations() != null) {
                 for (Registration reg : e.getRegistrations()) {
                     if (reg.getRegistrationId().equals(registrationId)) {
-                        event = e;
+                        eventId = e.getEventId();
                         break;
                     }
                 }
             }
-            if (event != null) break;
+            if (eventId != null) break;
         }
         
         boolean cancelled = registrationManager.cancelRegistration(registrationId);
         
-        // If cancellation successful and event found, handle waitlist promotion
-        if (cancelled && event != null && waitlistManager != null) {
-            WaitlistManager.WaitlistPromotionResult result = 
-                waitlistManager.handleRegistrationCancellation(event);
-            // The waitlist manager handles all notifications
+        // Sync the event registrations after cancellation
+        if (cancelled && eventId != null) {
+            syncEventRegistrations(eventId);
+            
+            // Handle waitlist promotion
+            Event event = events.get(eventId);
+            if (event != null && waitlistManager != null) {
+                WaitlistManager.WaitlistPromotionResult result = 
+                    waitlistManager.handleRegistrationCancellation(event);
+                // The waitlist manager handles all notifications
+            }
         }
         
         return cancelled;
+    }
+    
+    /**
+     * Synchronizes the Event object's registrations list with the RegistrationManager data
+     */
+    private void syncEventRegistrations(String eventId) {
+        Event event = events.get(eventId);
+        if (event != null) {
+            List<Registration> currentRegistrations = registrationManager.getEventRegistrations(eventId);
+            event.getRegistrations().clear();
+            event.getRegistrations().addAll(currentRegistrations);
+            
+            // Update the event in persistence
+            update(event);
+        }
     }
     
     public int getCurrentRegistrationCount(String eventId) {

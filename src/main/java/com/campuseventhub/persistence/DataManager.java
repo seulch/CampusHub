@@ -38,7 +38,7 @@ public class DataManager {
         String srcPath = userDir + "/src/main/resources/data/";
         String targetPath = userDir + "/target/classes/data/";
         
-        // Check if we're running from maven (target path exists) or source
+        // Check if the application is running from maven (target path exists) or source
         java.io.File targetDir = new java.io.File(targetPath);
         java.io.File srcDir = new java.io.File(srcPath);
         

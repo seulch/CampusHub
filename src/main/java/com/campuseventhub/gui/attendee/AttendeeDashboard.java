@@ -12,6 +12,7 @@ public class AttendeeDashboard extends BaseFrame {
     private AttendeeEventBrowser eventBrowser;
     private AttendeeRegistrationPanel registrationPanel;
     private AttendeeSchedulePanel schedulePanel;
+    private AttendeeNotificationPanel notificationPanel;
     private ProfileEditingPanel profilePanel;
     private AttendeeActionHandler actionHandler;
     
@@ -34,11 +35,13 @@ public class AttendeeDashboard extends BaseFrame {
         eventBrowser = new AttendeeEventBrowser(eventHub);
         registrationPanel = new AttendeeRegistrationPanel(eventHub, attendee.getUserId());
         schedulePanel = new AttendeeSchedulePanel(eventHub, attendee);
+        notificationPanel = new AttendeeNotificationPanel(eventHub, attendee.getUserId());
         profilePanel = new ProfileEditingPanel(eventHub);
         
         mainTabbedPane.addTab("Browse Events", eventBrowser);
         mainTabbedPane.addTab("My Registrations", registrationPanel);
         mainTabbedPane.addTab("My Schedule", schedulePanel);
+        mainTabbedPane.addTab("Notifications", notificationPanel);
         mainTabbedPane.addTab("My Profile", profilePanel);
         
         add(mainTabbedPane, BorderLayout.CENTER);
@@ -51,16 +54,20 @@ public class AttendeeDashboard extends BaseFrame {
                 eventBrowser.loadAvailableEvents();
                 registrationPanel.loadMyRegistrations();
                 schedulePanel.updateSchedule();
+                notificationPanel.loadNotifications(); // Refresh notifications after registration
             }
         });
         
         registrationPanel.setOnRegistrationSelected(e -> 
             actionHandler.viewRegistrationDetails(registrationPanel.getSelectedRegistration()));
+        registrationPanel.setOnViewQRCode(e -> 
+            actionHandler.viewQRCode(registrationPanel.getSelectedRegistration()));
         registrationPanel.setOnCancelRegistration(e -> {
             if (actionHandler.cancelRegistration(registrationPanel.getSelectedRegistration())) {
                 registrationPanel.loadMyRegistrations();
                 eventBrowser.loadAvailableEvents();
                 schedulePanel.updateSchedule();
+                notificationPanel.loadNotifications(); // Refresh notifications after cancellation
             }
         });
     }
@@ -68,5 +75,6 @@ public class AttendeeDashboard extends BaseFrame {
     private void loadData() {
         eventBrowser.loadAvailableEvents();
         registrationPanel.loadMyRegistrations();
+        notificationPanel.loadNotifications();
     }
 }

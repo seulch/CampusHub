@@ -26,8 +26,9 @@ public class Admin extends User {
     public Admin(String username, String email, String password,
                 String firstName, String lastName, String adminLevel) {
         super(username, email, password, firstName, lastName);
-        // TODO: Set admin level and corresponding permissions
-        // TODO: Initialize permissions list based on admin level
+        this.adminLevel = adminLevel;
+        this.permissions = new java.util.ArrayList<>();
+        initializePermissions();
         // TODO: Set status to ACTIVE (admins are pre-approved)
         // TODO: Log admin account creation
     }
@@ -96,9 +97,31 @@ public class Admin extends User {
         return UserRole.ADMIN;
     }
     
-    // TODO: Add methods for system management
-    // public List<User> getPendingApprovals()
-    // public boolean updateSystemSettings(Map<String, String> settings)
-    // public List<Event> getEventsRequiringApproval()
-    // public void broadcastSystemNotification(String message)
+    // Getter methods for fields
+    public List<String> getPermissions() {
+        return new java.util.ArrayList<>(permissions);
+    }
+    
+    public String getAdminLevel() {
+        return adminLevel;
+    }
+    
+    // Initialize permissions based on admin level
+    private void initializePermissions() {
+        switch (adminLevel.toUpperCase()) {
+            case "SUPER_ADMIN":
+                permissions.add("USER_MANAGEMENT");
+                permissions.add("SYSTEM_CONFIG");
+                permissions.add("EVENT_MANAGEMENT");
+                permissions.add("VENUE_MANAGEMENT");
+                break;
+            case "SYSTEM_ADMIN":
+                permissions.add("USER_MANAGEMENT");
+                permissions.add("EVENT_MANAGEMENT");
+                break;
+            default:
+                permissions.add("EVENT_MANAGEMENT");
+                break;
+        }
+    }
 }

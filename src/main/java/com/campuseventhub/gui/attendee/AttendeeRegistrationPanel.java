@@ -17,6 +17,7 @@ public class AttendeeRegistrationPanel extends JPanel {
     private JList<String> registrationsList;
     private ActionListener onRegistrationSelected;
     private ActionListener onCancelRegistration;
+    private ActionListener onViewQRCode;
     
     public AttendeeRegistrationPanel(EventHub eventHub, String attendeeId) {
         this.eventHub = eventHub;
@@ -39,14 +40,20 @@ public class AttendeeRegistrationPanel extends JPanel {
         registrationsScrollPane.setPreferredSize(new Dimension(600, 400));
         
         JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton refreshBtn = new JButton("Refresh");
-        JButton viewRegistrationBtn = new JButton("View Registration");
-        JButton cancelRegistrationBtn = new JButton("Cancel Registration");
+        JButton refreshBtn = ComponentFactory.createStandardButton("Refresh");
+        JButton viewRegistrationBtn = ComponentFactory.createStandardButton("View Registration");
+        JButton viewQRCodeBtn = ComponentFactory.createPrimaryButton("View QR Code");
+        JButton cancelRegistrationBtn = ComponentFactory.createErrorButton("Cancel Registration");
         
         refreshBtn.addActionListener(e -> loadMyRegistrations());
         viewRegistrationBtn.addActionListener(e -> {
             if (onRegistrationSelected != null) {
                 onRegistrationSelected.actionPerformed(e);
+            }
+        });
+        viewQRCodeBtn.addActionListener(e -> {
+            if (onViewQRCode != null) {
+                onViewQRCode.actionPerformed(e);
             }
         });
         cancelRegistrationBtn.addActionListener(e -> {
@@ -57,6 +64,7 @@ public class AttendeeRegistrationPanel extends JPanel {
         
         buttonsPanel.add(refreshBtn);
         buttonsPanel.add(viewRegistrationBtn);
+        buttonsPanel.add(viewQRCodeBtn);
         buttonsPanel.add(cancelRegistrationBtn);
         
         add(registrationsScrollPane, BorderLayout.CENTER);
@@ -80,12 +88,36 @@ public class AttendeeRegistrationPanel extends JPanel {
                         .orElse(null);
                     
                     if (event != null) {
-                        String regInfo = String.format("ID: %s - %s (%s) - %s - Status: %s", 
+                        String eventStatusInfo = "";
+                        String statusColor = "";
+                        
+                        // Check event status
+                        switch (event.getStatus()) {
+                            case CANCELLED:
+                                eventStatusInfo = " [CANCELLED]";
+                                statusColor = " ⚠️";
+                                break;
+                            case DRAFT:
+                                eventStatusInfo = " [POSTPONED/RESCHEDULED]";
+                                statusColor = " ⏳";
+                                break;
+                            case COMPLETED:
+                                eventStatusInfo = " [COMPLETED]";
+                                statusColor = " ✅";
+                                break;
+                            default:
+                                statusColor = "";
+                                break;
+                        }
+                        
+                        String regInfo = String.format("ID: %s - %s (%s) - %s - Status: %s%s%s", 
                             registration.getRegistrationId(),
                             event.getTitle(),
                             event.getEventType().getDisplayName(),
                             event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                            registration.getStatus().getDisplayName()
+                            registration.getStatus().getDisplayName(),
+                            statusColor,
+                            eventStatusInfo
                         );
                         
                         if (registration.isWaitlisted()) {
@@ -110,6 +142,10 @@ public class AttendeeRegistrationPanel extends JPanel {
     
     public void setOnRegistrationSelected(ActionListener listener) {
         this.onRegistrationSelected = listener;
+    }
+    
+    public void setOnViewQRCode(ActionListener listener) {
+        this.onViewQRCode = listener;
     }
     
     public void setOnCancelRegistration(ActionListener listener) {

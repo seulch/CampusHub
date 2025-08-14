@@ -8,6 +8,7 @@ import com.campuseventhub.model.event.Event;
 import com.campuseventhub.model.event.Registration;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 /**
  * Attendee user class with event registration and management capabilities.
@@ -28,11 +29,10 @@ public class Attendee extends User {
     public Attendee(String username, String email, String password,
                    String firstName, String lastName) {
         super(username, email, password, firstName, lastName);
-        // TODO: Initialize registrations list
-        // TODO: Initialize wishlist
-        // TODO: Initialize preferences map with default values
-        // TODO: Create personal schedule instance
-        // TODO: Set status to ACTIVE (attendees are auto-approved)
+        this.registrations = new ArrayList<>();
+        this.wishlist = new ArrayList<>();
+        this.preferences = new java.util.HashMap<>();
+        initializeDefaultPreferences();
     }
     
     public Registration registerForEvent(String eventId) {
@@ -89,8 +89,31 @@ public class Attendee extends User {
         return UserRole.ATTENDEE;
     }
     
-    // TODO: Add methods for preference management
-    // public void updatePreferences(Map<String, String> newPreferences)
-    // public List<Event> searchEvents(EventSearchCriteria criteria)
-    // public boolean checkScheduleConflict(Event event)
+    // Getter methods for fields
+    public List<Registration> getRegistrations() {
+        return new ArrayList<>(registrations);
+    }
+    
+    public List<Event> getWishlist() {
+        return new ArrayList<>(wishlist);
+    }
+    
+    public Map<String, String> getPreferences() {
+        return new java.util.HashMap<>(preferences);
+    }
+    
+    // Initialize default preferences
+    private void initializeDefaultPreferences() {
+        preferences.put("notification_email", "true");
+        preferences.put("notification_sms", "false");
+        preferences.put("preferred_event_time", "evening");
+        preferences.put("event_categories", "academic,social");
+    }
+    
+    // Update preferences
+    public void updatePreferences(Map<String, String> newPreferences) {
+        if (newPreferences != null) {
+            preferences.putAll(newPreferences);
+        }
+    }
 }

@@ -71,9 +71,31 @@ public class AttendeeSchedulePanel extends JPanel {
                 for (Registration reg : confirmedRegs) {
                     Event event = eventHub.getEventById(reg.getEventId());
                     if (event != null) {
-                        schedule.append("• ").append(event.getTitle()).append("\n");
+                        String statusIcon = "";
+                        String statusText = "";
+                        
+                        switch (event.getStatus()) {
+                            case CANCELLED:
+                                statusIcon = "⚠️ ";
+                                statusText = " [CANCELLED]";
+                                break;
+                            case DRAFT:
+                                statusIcon = "⏳ ";
+                                statusText = " [RESCHEDULED]";
+                                break;
+                            case COMPLETED:
+                                statusIcon = "✅ ";
+                                statusText = " [COMPLETED]";
+                                break;
+                            default:
+                                statusIcon = "• ";
+                                break;
+                        }
+                        
+                        schedule.append(statusIcon).append(event.getTitle()).append(statusText).append("\n");
                         schedule.append("  Date: ").append(event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n");
                         schedule.append("  Type: ").append(event.getEventType().getDisplayName()).append("\n");
+                        schedule.append("  Status: ").append(event.getStatus().getDisplayName()).append("\n");
                         if (event.getVenue() != null) {
                             schedule.append("  Venue: ").append(event.getVenue().getName()).append("\n");
                         }
@@ -88,8 +110,30 @@ public class AttendeeSchedulePanel extends JPanel {
                 for (Registration reg : waitlistedRegs) {
                     Event event = eventHub.getEventById(reg.getEventId());
                     if (event != null) {
-                        schedule.append("• ").append(event.getTitle()).append("\n");
+                        String statusIcon = "";
+                        String statusText = "";
+                        
+                        switch (event.getStatus()) {
+                            case CANCELLED:
+                                statusIcon = "⚠️ ";
+                                statusText = " [CANCELLED]";
+                                break;
+                            case DRAFT:
+                                statusIcon = "⏳ ";
+                                statusText = " [RESCHEDULED]";
+                                break;
+                            case COMPLETED:
+                                statusIcon = "✅ ";
+                                statusText = " [COMPLETED]";
+                                break;
+                            default:
+                                statusIcon = "• ";
+                                break;
+                        }
+                        
+                        schedule.append(statusIcon).append(event.getTitle()).append(statusText).append("\n");
                         schedule.append("  Date: ").append(event.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n");
+                        schedule.append("  Status: ").append(event.getStatus().getDisplayName()).append("\n");
                         schedule.append("  Waitlist Position: #").append(reg.getWaitlistPosition()).append("\n");
                         schedule.append("  Registration: ").append(reg.getRegistrationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))).append("\n\n");
                     }

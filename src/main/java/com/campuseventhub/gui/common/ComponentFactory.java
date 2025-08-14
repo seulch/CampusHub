@@ -32,6 +32,8 @@ public final class ComponentFactory {
         button.setFont(BUTTON_FONT);
         button.setBackground(PRIMARY_COLOR);
         button.setForeground(Color.WHITE);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
         button.setFocusPainted(false);
         return button;
     }
@@ -39,6 +41,39 @@ public final class ComponentFactory {
     public static JButton createStandardButton(String text) {
         JButton button = new JButton(text);
         button.setFont(BUTTON_FONT);
+        return button;
+    }
+    
+    public static JButton createSuccessButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(BUTTON_FONT);
+        button.setBackground(SUCCESS_COLOR);
+        button.setForeground(Color.WHITE);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        return button;
+    }
+    
+    public static JButton createWarningButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(BUTTON_FONT);
+        button.setBackground(WARNING_COLOR);
+        button.setForeground(Color.BLACK);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        return button;
+    }
+    
+    public static JButton createErrorButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(BUTTON_FONT);
+        button.setBackground(ERROR_COLOR);
+        button.setForeground(Color.WHITE);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
         return button;
     }
 

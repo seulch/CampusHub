@@ -7,8 +7,11 @@ public class SMSNotification implements NotificationStrategy {
 
     @Override
     public boolean sendNotification(String message, String recipient) {
-        // TODO: Implement SMS sending
-        return false;
+        // Simulated SMS sending
+        System.out.println("[SMS] To: " + recipient);
+        System.out.println("[SMS] Message: " + message);
+        System.out.println("[SMS] Status: Delivered\n");
+        return true;
     }
 
     @Override
@@ -18,7 +21,7 @@ public class SMSNotification implements NotificationStrategy {
 
     @Override
     public boolean isAvailable() {
-        // TODO: Check SMS service status
+        // Simulated SMS service availability check
         return true;
     }
 }

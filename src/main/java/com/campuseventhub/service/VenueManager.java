@@ -99,10 +99,10 @@ public class VenueManager implements VenueRepository {
      */
     public boolean addVenue(Venue venue) {
         try {
-            // Check for duplicate venue names to prevent duplicates
+            // Check for duplicate venue names to prevent duplicates (case-insensitive)
             for (Venue existingVenue : venues.values()) {
-                if (existingVenue.getName().equals(venue.getName()) && 
-                    existingVenue.getLocation().equals(venue.getLocation())) {
+                if (existingVenue.getName().equalsIgnoreCase(venue.getName()) && 
+                    existingVenue.getLocation().equalsIgnoreCase(venue.getLocation())) {
                     System.out.println("VenueManager: Venue already exists with name '" + venue.getName() + "' at location '" + venue.getLocation() + "'");
                     return false;
                 }

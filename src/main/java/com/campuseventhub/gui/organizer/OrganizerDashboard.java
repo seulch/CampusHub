@@ -48,6 +48,9 @@ public class OrganizerDashboard extends BaseFrame {
         eventListPanel.setOnViewEvent(e -> 
             actionHandler.viewEventDetails(eventListPanel.getSelectedEvent()));
         
+        eventListPanel.setOnViewRegistrations(e -> 
+            actionHandler.viewRegistrations(eventListPanel.getSelectedEventObject()));
+        
         eventListPanel.setOnEditEvent(e -> {
             actionHandler.editEvent(eventListPanel.getSelectedEventObject());
             eventListPanel.loadMyEvents(); // Refresh the list after editing

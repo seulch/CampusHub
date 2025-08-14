@@ -157,15 +157,15 @@ public class RegistrationDeadlineManager {
     private void closeEventRegistration(Event event, LocalDateTime closureTime) {
         String eventId = event.getEventId();
         
-        // Prevent duplicate closures - check if we've already processed this deadline
+        // Prevent duplicate closures - check if this deadline has already been processed
         if (lastDeadlineCheck.containsKey(eventId)) {
             return;
         }
         
         try {
             // Close registration by updating event status to REGISTRATION_CLOSED
-            // Since REGISTRATION_CLOSED doesn't exist in EventStatus, we'll use a different approach
-            // We'll rely on the isRegistrationOpen() method which checks deadline
+            // Since REGISTRATION_CLOSED doesn't exist in EventStatus, using alternative approach
+            // Relies on the isRegistrationOpen() method which checks deadline
             
             // Mark the deadline as processed
             lastDeadlineCheck.put(eventId, closureTime);

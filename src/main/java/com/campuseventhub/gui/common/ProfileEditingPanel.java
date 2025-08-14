@@ -115,7 +115,7 @@ public class ProfileEditingPanel extends JPanel {
         // Update Profile Button
         gbc.gridx = 1; gbc.gridy = 4; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0; gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(15, 5, 5, 5);
-        updateProfileButton = new JButton("Update Profile");
+        updateProfileButton = ComponentFactory.createPrimaryButton("Update Profile");
         updateProfileButton.setPreferredSize(new Dimension(150, 30));
         panel.add(updateProfileButton, gbc);
         
@@ -161,7 +161,7 @@ public class ProfileEditingPanel extends JPanel {
         // Change Password Button
         gbc.gridx = 1; gbc.gridy = 4; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0; gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(15, 5, 5, 5);
-        changePasswordButton = new JButton("Change Password");
+        changePasswordButton = ComponentFactory.createWarningButton("Change Password");
         changePasswordButton.setPreferredSize(new Dimension(150, 30));
         panel.add(changePasswordButton, gbc);
         

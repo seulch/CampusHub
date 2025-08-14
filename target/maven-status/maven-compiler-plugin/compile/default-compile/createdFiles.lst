@@ -1,3 +1,4 @@
+com/campuseventhub/gui/attendee/AttendeeNotificationPanel$NotificationListCellRenderer.class
 com/campuseventhub/gui/organizer/EventCancellationDialog$1.class
 com/campuseventhub/gui/admin/AdminVenueManagementPanel.class
 com/campuseventhub/model/user/UserRole.class
@@ -36,9 +37,11 @@ com/campuseventhub/gui/attendee/AttendeeEventBrowser.class
 com/campuseventhub/gui/attendee/AttendeeActionHandler.class
 com/campuseventhub/model/venue/Venue.class
 com/campuseventhub/persistence/VenueRepository.class
+com/campuseventhub/model/report/EventReport.class
 com/campuseventhub/util/ValidationUtil.class
 com/campuseventhub/model/user/Admin.class
 com/campuseventhub/gui/admin/AdminOverviewPanel.class
+com/campuseventhub/model/report/UserReport.class
 com/campuseventhub/gui/admin/AdminActionHandler.class
 com/campuseventhub/model/event/RegistrationStatus.class
 com/campuseventhub/gui/organizer/DateTimeSelector$2.class
@@ -53,6 +56,7 @@ com/campuseventhub/service/EventSearchService.class
 com/campuseventhub/util/DateTimeUtil.class
 com/campuseventhub/gui/DashboardNavigationService.class
 com/campuseventhub/gui/attendee/AttendeeRegistrationPanel.class
+com/campuseventhub/gui/attendee/AttendeeSchedulePanel$1.class
 com/campuseventhub/strategy/SMSNotification.class
 com/campuseventhub/service/NotificationTemplateManager.class
 com/campuseventhub/gui/organizer/EventReschedulingDialog.class
@@ -60,13 +64,14 @@ com/campuseventhub/model/event/Conflict.class
 com/campuseventhub/service/WaitlistManager.class
 com/campuseventhub/service/WaitlistManager$WaitlistPromotionResult.class
 com/campuseventhub/gui/common/ProfileEditingPanel$2.class
-com/campuseventhub/service/UserStatusService.class
 com/campuseventhub/service/RegistrationManager.class
 com/campuseventhub/model/event/EventStatus.class
 com/campuseventhub/service/WaitlistManager$WaitlistStatistics.class
 com/campuseventhub/model/event/Conflict$ConflictType.class
 com/campuseventhub/strategy/EmailNotification.class
 com/campuseventhub/gui/DashboardNavigationService$1.class
+com/campuseventhub/model/report/Report.class
+com/campuseventhub/model/report/SystemReport.class
 com/campuseventhub/gui/admin/AdminUserManagementPanel.class
 com/campuseventhub/gui/common/ProfileEditingPanel$1.class
 com/campuseventhub/service/UserSearchService.class
@@ -74,6 +79,7 @@ com/campuseventhub/util/QRCodeGenerator.class
 com/campuseventhub/strategy/InAppNotification.class
 com/campuseventhub/gui/LoginController.class
 com/campuseventhub/model/event/EventType.class
+com/campuseventhub/gui/attendee/AttendeeRegistrationPanel$1.class
 com/campuseventhub/gui/LoginFormBuilder.class
 com/campuseventhub/service/UserFactory$1.class
 com/campuseventhub/service/UserAuthenticationService.class
@@ -82,9 +88,11 @@ com/campuseventhub/gui/admin/SystemReportsPanel.class
 com/campuseventhub/gui/RegistrationFrame.class
 com/campuseventhub/persistence/EventRepository.class
 com/campuseventhub/gui/organizer/OrganizerEventCreationPanel.class
+com/campuseventhub/gui/attendee/AttendeeNotificationPanel.class
 com/campuseventhub/gui/LoginFrame.class
 com/campuseventhub/model/notification/Notification.class
 com/campuseventhub/persistence/UserRepository.class
+com/campuseventhub/gui/attendee/AttendeeNotificationPanel$1.class
 com/campuseventhub/model/user/User.class
 com/campuseventhub/util/FileUtil.class
 com/campuseventhub/service/RegistrationDeadlineManager$RegistrationDeadlineStatistics.class

@@ -163,12 +163,21 @@ public class VenueSelectionPanel extends JPanel {
             return;
         }
         
-        List<String> conflicts = eventHub.getEventVenueConflicts(selected.venue.getVenueId());
-        if (conflicts.isEmpty()) {
+        // Check if venue is available by getting available venues for this time slot
+        List<Venue> availableVenues = eventHub.getAvailableVenues(startTime, endTime, requiredCapacity);
+        boolean isAvailable = false;
+        for (Venue venue : availableVenues) {
+            if (venue.getVenueId().equals(selected.venue.getVenueId())) {
+                isAvailable = true;
+                break;
+            }
+        }
+        
+        if (isAvailable) {
             availabilityLabel.setText("✓ Available");
             availabilityLabel.setForeground(Color.GREEN);
         } else {
-            availabilityLabel.setText("✗ " + String.join(", ", conflicts));
+            availabilityLabel.setText("✗ Not available for selected time or insufficient capacity");
             availabilityLabel.setForeground(Color.RED);
         }
     }
@@ -193,11 +202,27 @@ public class VenueSelectionPanel extends JPanel {
      * Sets the selected venue by ID
      */
     public void setSelectedVenue(String venueId) {
+        if (venueId == null) {
+            venueComboBox.setSelectedIndex(0); // Select "No venue selected"
+            return;
+        }
+        
+        // First try to find in current items
         for (int i = 0; i < venueComboBox.getItemCount(); i++) {
             VenueOption option = venueComboBox.getItemAt(i);
             if (option.venue != null && option.venue.getVenueId().equals(venueId)) {
                 venueComboBox.setSelectedIndex(i);
-                break;
+                return;
+            }
+        }
+        
+        // If not found, reload all venues and try again
+        loadAllVenues();
+        for (int i = 0; i < venueComboBox.getItemCount(); i++) {
+            VenueOption option = venueComboBox.getItemAt(i);
+            if (option.venue != null && option.venue.getVenueId().equals(venueId)) {
+                venueComboBox.setSelectedIndex(i);
+                return;
             }
         }
     }
@@ -218,8 +243,13 @@ public class VenueSelectionPanel extends JPanel {
         
         // Check availability
         if (startTime != null && endTime != null) {
-            List<String> conflicts = eventHub.getEventVenueConflicts(selected.venue.getVenueId());
-            return conflicts.isEmpty();
+            List<Venue> availableVenues = eventHub.getAvailableVenues(startTime, endTime, requiredCapacity);
+            for (Venue venue : availableVenues) {
+                if (venue.getVenueId().equals(selected.venue.getVenueId())) {
+                    return true;
+                }
+            }
+            return false;
         }
         
         return true;

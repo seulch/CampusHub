@@ -32,7 +32,7 @@ class VenueCapacityValidationTest {
         var organizer = eventHub.authenticateUser(organizerUsername, "password123");
         organizerId = organizer.getUserId();
         
-        // Use existing venues - based on previous test runs, we know these exist:
+        // Use existing venues from the test data setup:
         // Small Room (Building B) - capacity 20
         // Test Hall (Building A) - capacity 100
         var allVenues = eventHub.listVenues();

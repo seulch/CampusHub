@@ -23,7 +23,7 @@ class PasswordSecurityTest {
         User user = new Attendee("testuser", "test@example.com", "password123", 
                                 "Test", "User");
         
-        // Verify that we can't get the raw password
+        // Verify that the raw password cannot be retrieved
         // This test ensures the getPassword() method was removed/secured
         String username = user.getUsername();
         String email = user.getEmail();
@@ -123,8 +123,8 @@ class PasswordSecurityTest {
         assertTrue(user2.verifyPassword(samePassword));
         
         // But they should have different hashes due to username salt
-        // (We can't directly test this since getPassword() is removed for security,
-        // but we can verify they both authenticate correctly)
+        // Password getter is removed for security purposes,
+        // verification performed through authentication methods
         assertTrue(user1.verifyPassword(samePassword));
         assertTrue(user2.verifyPassword(samePassword));
         
