@@ -85,4 +85,12 @@ public class DateTimeUtil {
         }
         return java.time.Duration.between(start, end).toHours();
     }
+
+    public static String formatRange(LocalDateTime start, LocalDateTime end) {
+        if (start == null && end == null) return "";
+        if (start == null) return end.format(EVENT_DATETIME_FORMAT);
+        if (end == null) return start.format(EVENT_DATETIME_FORMAT);
+        return start.format(EVENT_DATETIME_FORMAT) + " \u2192 " + end.format(EVENT_DATETIME_FORMAT);
+    }
+    
 }
